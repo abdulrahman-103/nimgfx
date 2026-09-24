@@ -36,7 +36,7 @@ while running:
     else:
       discard
 
-    if event.pressed(SDL_SCANCODE_ESCAPE):
+    if event.pressed(Escape):
         running = false
     if event.pressed(Down):
       rect.down(10)
@@ -45,7 +45,7 @@ while running:
     if event.pressed(Right):
       rect.right(10)    
     
-  if down(Left):
+  if Left.down():
     rect.left(10)
   
   renderer.clear(red)

@@ -1,5 +1,8 @@
 import sdl3
 export sdl3
+import nimgfx/input
+export input
+
 type 
   App = ref object
     window: SDL_Window
@@ -23,21 +26,12 @@ type
   Rect* = SDL_FRect
 
   Event* = SDL_Event
-
-  Key* = SDL_Scancode
     
 const 
   On*: cint = 1
   Off*: cint = 0
   quitEvent*: SDL_EventType = SDL_EVENT_QUIT
   keyDownEvent*: SDL_EventType = SDL_EVENT_KEY_DOWN
-
-const
-  Left*: SDL_Scancode = SDL_SCANCODE_LEFT
-  Right*: SDL_Scancode = SDL_SCANCODE_RIGHT
-  Up*: SDL_Scancode = SDL_SCANCODE_UP
-  Down*: SDL_Scancode = SDL_SCANCODE_DOWN
-
 
 const red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
 const green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
