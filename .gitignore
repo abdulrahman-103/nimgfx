@@ -4,3 +4,6 @@ htmldocs/
 main
 nimgfx
 keys
+tarsis
+input
+*.out

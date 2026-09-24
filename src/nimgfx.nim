@@ -1,7 +1,7 @@
 import sdl3
 export sdl3
-import nimgfx/input
-export input
+import nimgfx/keys
+export keys
 
 type 
   App = ref object
@@ -10,8 +10,8 @@ type
     running: bool
 
   Window* = ref object
-    title*: cstring
-    w*, h*: cint
+    title*: string
+    w*, h*: int32
     flags*: SDL_WindowFlags = 0
     sdlWindow*: SDL_Window = nil
 
@@ -26,21 +26,33 @@ type
   Rect* = SDL_FRect
 
   Event* = SDL_Event
+
+type InitFlags* = SDL_InitFlags
+const
+  InitAudio*: uint32 = SDL_INIT_AUDIO
+  InitVideo*: uint32 = SDL_INIT_VIDEO
+  InitJoystick*: uint32 = SDL_INIT_JOYSTICK
+  InitHaptic*: uint32 = SDL_INIT_HAPTIC
+  InitGamepad*: uint32 = SDL_INIT_GAMEPAD
+  InitEvents*: uint32 = SDL_INIT_EVENTS
+  InitSensor*: uint32 = SDL_INIT_SENSOR
+  InitCamera*: uint32 = SDL_INIT_CAMERA
     
 const 
   On*: cint = 1
   Off*: cint = 0
   quitEvent*: SDL_EventType = SDL_EVENT_QUIT
   keyDownEvent*: SDL_EventType = SDL_EVENT_KEY_DOWN
+  keyUpEvent*: SDL_EventType = SDL_EVENT_KEY_UP
 
-const red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
-const green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
-const blue*: Color = Color(r: 0, g: 0, b: 255, a: 255)
-const white*: Color = Color(r: 255, g: 255, b: 255, a: 255)
-const black*: Color = Color(r: 0, g: 0, b: 0, a: 255)
+const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
+const Green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
+const Blue*: Color = Color(r: 0, g: 0, b: 255, a: 255)
+const White*: Color = Color(r: 255, g: 255, b: 255, a: 255)
+const Black*: Color = Color(r: 0, g: 0, b: 0, a: 255)
 
 proc create*(window: Window): void =
-  window.sdlWindow = SDL_CreateWindow(window.title, window.w, window.h, window.flags)
+  window.sdlWindow = SDL_CreateWindow(window.title.cstring, window.w.cint, window.h.cint, window.flags)
 
 proc create*(renderer: Renderer): void =
   renderer.sdlRenderer = SDL_CreateRenderer(renderer.window.sdlWindow, nil)
@@ -78,6 +90,13 @@ proc pressed*(event: Event, key: Key): bool =
   if event.type == keyDownEvent:
     return event.key.scancode == key and not event.key.repeat
 
+proc released*(event: Event, key: Key): bool =
+  if event.type == keyUpEvent:
+    return event.key.scancode == key
+
 proc down*(key: Key): bool =
   var numKeys: cint
   return SDL_GetKeyboardState(numKeys)[ord(key)]
+
+proc init*(flags: InitFlags): bool =
+  SDL_Init(flags)

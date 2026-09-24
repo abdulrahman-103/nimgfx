@@ -1,4 +1,4 @@
-import nimgfx
+import src/nimgfx
 
 var window: Window = Window(title: "test", w: 500, h: 500)
 window.create()
@@ -26,6 +26,9 @@ proc right(rect: var Rect, distance: cfloat) =
 proc left(rect: var Rect, distance: cfloat) =
   rect.x -= distance
 
+if not init(InitVideo):
+  echo "Couldn't initialize SDL"
+
 while running:
 
   var event: Event
@@ -48,9 +51,9 @@ while running:
   if Left.down():
     rect.left(10)
   
-  renderer.clear(red)
-  renderer.setDrawColor(green)
-  renderer.drawRect(rect, green)
+  renderer.clear(Red)
+  renderer.setDrawColor(Green)
+  renderer.drawRect(rect, Green)
   renderer.render()
 
 renderer.kill()
