@@ -27,7 +27,12 @@ proc left(rect: var Rect, distance: cfloat) =
   rect.x -= distance
 
 if not init(InitVideo):
-  echo "Couldn't initialize SDL"
+  echo "Couldn't Initialize Video"
+  quit(1)
+
+if not init(InitAudio):
+  echo "Couldn't Initialize Audio"
+  quit(1)
 
 while running:
 
@@ -46,10 +51,12 @@ while running:
     if event.pressed(Up):
       rect.up(10)
     if event.pressed(Right):
-      rect.right(10)    
+      rect.right(10)
+      playAudio("/home/abdulrahman/the_grandfather_paradox/chests/open_chest.wav")
+      
     
   if Left.down():
-    rect.left(10)
+    rect.left(1)
   
   renderer.clear(Red)
   renderer.setDrawColor(Green)

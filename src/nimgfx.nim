@@ -11,7 +11,7 @@ type
 
   Window* = ref object
     title*: string
-    w*, h*: int32
+    w*, h*: int
     flags*: SDL_WindowFlags = 0
     sdlWindow*: SDL_Window = nil
 
@@ -100,3 +100,24 @@ proc down*(key: Key): bool =
 
 proc init*(flags: InitFlags): bool =
   SDL_Init(flags)
+
+var streams: seq[SDL_AudioStream] = @[]
+
+proc playAudio*(path: string): void =
+  var spec: SDL_AudioSpec
+  var buffer: ptr uint8
+  var length: uint32
+  if SDL_LoadWAV(path.cstring, addr spec, buffer, length):
+    if streams.len > 0:
+      for i in countdown(streams.high, 0):
+        if SDL_GetAudioStreamQueued(streams[i]) == 0:
+          SDL_DestroyAudioStream(streams[i])
+          streams.delete(i)
+    var stream: SDL_AudioStream = SDL_OpenAudioDeviceStream(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, spec, nil, nil)
+    streams.add(stream)
+    discard SDL_PutAudioStreamData(stream, buffer, length.cint)
+    SDL_free(buffer)
+    discard SDL_ResumeAudioStreamDevice(stream)
+
+proc drawText*(text: string): void =
+  discard
