@@ -1,4 +1,4 @@
-import sdl3/sdl3
+import sdl3/[sdl3, sdl3_ttf]
 import nimgfx/[keys, vectors]
 export keys, vectors
 
@@ -17,26 +17,18 @@ type
   Renderer* = ref object
     window*: Window
     sdlRenderer*: sdl3.Renderer = nil
-
-type
-  Event* = sdl3.Event
+    textEngine: TextEngine
 
   Color* = object
     r*, g*, b*, a*: uint8
-    
+
+  Font* = sdl3_ttf.Font
+
+  Text* = ptr sdl3_ttf.Text
+
+  Event* = sdl3.Event
+
   Rect* = FRect
-
-
-type InitFlags* = sdl3.InitFlags
-const
-  InitAudio*: uint32 = INIT_AUDIO
-  InitVideo*: uint32 = INIT_VIDEO
-  InitJoystick*: uint32 = INIT_JOYSTICK
-  InitHaptic*: uint32 = INIT_HAPTIC
-  InitGamepad*: uint32 = INIT_GAMEPAD
-  InitEvents*: uint32 = INIT_EVENTS
-  InitSensor*: uint32 = INIT_SENSOR
-  InitCamera*: uint32 = INIT_CAMERA
     
 const 
   quitEvent*: EventType = EVENT_QUIT
@@ -82,6 +74,8 @@ proc kill*(window: Window): void =
 
 proc create*(renderer: Renderer): void =
   renderer.sdlRenderer = createRenderer(renderer.window.sdlWindow, nil)
+  discard sdl3_ttf.init()
+  renderer.textEngine = createRendererTextEngine(renderer.sdlRenderer)
 
 proc setDrawColor*(renderer: Renderer, color: Color): void =
   discard setRenderDrawColor(renderer.sdlRenderer, color.r, color.g, color.b, color.a)
@@ -145,8 +139,32 @@ proc down*(key: Key): bool =
   var numKeys: int32
   return getKeyboardState(numKeys)[ord(key)]
 
-proc init*(flags: InitFlags): bool =
-  sdl3.init(flags)
+proc initVideo*(): bool =
+  sdl3.init(INIT_VIDEO)
+
+proc initAudio*(): bool =
+  sdl3.init(INIT_AUDIO)
+
+proc initJoystick*(): bool =
+  sdl3.init(INIT_JOYSTICK)
+
+proc initHaptic*(): bool =
+  sdl3.init(INIT_HAPTIC)
+
+proc initGamepad*(): bool =
+  sdl3.init(INIT_GAMEPAD)
+
+proc initEvents*(): bool =
+  sdl3.init(INIT_EVENTS)
+
+proc initSensor*(): bool =
+  sdl3.init(INIT_SENSOR)
+
+proc initCamera*(): bool =
+  sdl3.init(INIT_CAMERA)
+
+proc initText*(): bool =
+  sdl3_ttf.init()
 
 var streams: seq[AudioStream] = @[]
 
@@ -166,5 +184,23 @@ proc playAudio*(path: string): void =
     sdlFree(buffer)
     discard resumeAudioStreamDevice(stream)
 
-proc drawText*(text: string): void =
-  discard
+proc createFont*(path: string, size: int): Font =
+  openFont(path, 50)
+
+proc kill*(font: Font): void =
+  closeFont(font)
+
+proc createText*(renderer: Renderer, text: string, font: Font, color: Color): Text =
+  let tempText = createText(renderer.textEngine, font, text, 0)
+  discard setTextColor(tempText, color.r, color.g, color.b, color.a)
+  return tempText
+
+proc drawText*(renderer: Renderer, text: Text; x, y: float32): void =
+  discard drawRendererText(text, x, y)
+
+proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
+  renderer.setDrawColor(color)
+  discard renderDebugText(renderer.sdlRenderer, x, y, text)
+  
+proc kill*(text: Text): void =
+  destroyText(text)

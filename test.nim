@@ -1,5 +1,18 @@
 import src/nimgfx
 
+if not initVideo():
+  echo "Couldn't Initialize Video"
+  quit(1)
+
+if not initAudio():
+  echo "Couldn't Initialize Audio"
+  quit(1)
+
+if not initText():
+  echo "Couldn't Initialize Text"
+  quit(1)
+
+
 var window: Window = Window(title: "test", w: 500, h: 500)
 window.create()
 var renderer: Renderer = Renderer(window: window)
@@ -31,14 +44,9 @@ proc right(rect: var Rect, distance: cfloat) =
 
 proc left(rect: var Rect, distance: cfloat) =
   rect.x -= distance
-
-if not init(InitVideo):
-  echo "Couldn't Initialize Video"
-  quit(1)
-
-if not init(InitAudio):
-  echo "Couldn't Initialize Audio"
-  quit(1)
+  
+let amiri: Font = createFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
+let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
 
 while running:
 
@@ -65,7 +73,9 @@ while running:
     rect.left(1)
   
   renderer.clear(Red)
+  renderer.drawText(helloWorld, 50, 50)
   renderer.drawRects([rect, rect2], Green)
+  renderer.drawDebugText("hello world", 200, 200, Black)
   renderer.render()
 
 renderer.kill()
