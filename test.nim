@@ -4,15 +4,21 @@ var window: Window = Window(title: "test", w: 500, h: 500)
 window.create()
 var renderer: Renderer = Renderer(window: window)
 renderer.create()
-renderer.setVSync(On)
+renderer.setVSync(true)
 
-var running = true
+var running: bool = true
 
 var rect: Rect
 rect.x = 300
 rect.y = 100
 rect.w = 50
 rect.h = 50
+
+var rect2: Rect
+rect2.x = 300
+rect2.y = 150
+rect2.w = 50
+rect2.h = 50
 
 proc down(rect: var Rect, distance: cfloat) =
   rect.y += distance
@@ -59,8 +65,7 @@ while running:
     rect.left(1)
   
   renderer.clear(Red)
-  renderer.setDrawColor(Green)
-  renderer.drawRect(rect, Green)
+  renderer.drawRects([rect, rect2], Green)
   renderer.render()
 
 renderer.kill()
