@@ -1,4 +1,4 @@
-# Based on SDL 3.4.12
+# Based on SDL 3.4.16
 
 when defined(emscripten):
   const LibName* = "libSDL3.so"
@@ -2299,6 +2299,7 @@ proc getHintBoolean*(name: cstring, default_value: bool): bool {.importc: "SDL_G
 proc addHintCallback*(name: cstring, callback: HintCallback, userdata: pointer): bool {.importc: "SDL_AddHintCallback".}
 proc removeHintCallback*(name: cstring, callback: HintCallback, userdata: pointer) {.importc: "SDL_RemoveHintCallback".}
 
+const ANDROID_AAUDIO_INPUT_PRESET* = "SDL_ANDROID_AAUDIO_INPUT_PRESET"
 const HINT_ALLOW_ALT_TAB_WHILE_GRABBED* = "SDL_ALLOW_ALT_TAB_WHILE_GRABBED"
 const HINT_ANDROID_ALLOW_RECREATE_ACTIVITY* = "SDL_ANDROID_ALLOW_RECREATE_ACTIVITY"
 const HINT_ANDROID_BLOCK_ON_PAUSE* = "SDL_ANDROID_BLOCK_ON_PAUSE"

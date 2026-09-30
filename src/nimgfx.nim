@@ -1,4 +1,4 @@
-import sdl3/[sdl3, sdl3_ttf]
+import sdl3/[sdl3, sdl3_ttf, sdl3_image]
 import nimgfx/[keys, vectors]
 export keys, vectors
 
