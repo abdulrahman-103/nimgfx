@@ -1,16 +1,8 @@
 import src/nimgfx
 
-if not initVideo():
-  echo "Couldn't Initialize Video"
-  quit(1)
-
-if not initText():
-  echo "Couldn't Initialize Text"
-  quit(1)
-
-
 var window: Window = Window(title: "test", w: 500, h: 500)
 window.create()
+
 var renderer: Renderer = Renderer(window: window)
 renderer.create()
 renderer.setVSync(true)
@@ -57,7 +49,6 @@ window.setResizable(true)
 renderer.setScaling(500, 500, LetterboxScaling)
 
 while running:
-
   var event: Event
   while pollEvent(event):
     case event.type
@@ -83,11 +74,11 @@ while running:
       audioPlayer.stopAudio()
   
   renderer.clear(Red)
-  renderer.drawText(helloWorld, 50, 50)
   renderer.drawRect(rect, Green)
   renderer.drawHollowRects([rect2, rect3], Blue)
   renderer.drawDebugText("hello world", 200, 200, Black)
   renderer.drawImage(tux, 250, 50)
+  renderer.drawText(helloWorld, 50, 50)
   renderer.render()
 
 renderer.kill()

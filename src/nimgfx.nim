@@ -30,6 +30,8 @@ type
 
   Rect* = FRect
 
+  Circle* = object
+
   AudioPlayer* = Mixer
 
   Image* = object
@@ -98,8 +100,10 @@ proc kill*(window: Window): void =
 
 proc create*(renderer: Renderer): void =
   renderer.sdlRenderer = createRenderer(renderer.window.sdlWindow, nil)
-  discard sdl3_ttf.init()
-  renderer.textEngine = createRendererTextEngine(renderer.sdlRenderer)
+  if sdl3_ttf.init():
+    renderer.textEngine = createRendererTextEngine(renderer.sdlRenderer)
+  else:
+    echo "Couldn't initialize text"
 
 proc setDrawColor*(renderer: Renderer, color: Color): void =
   discard setRenderDrawColor(renderer.sdlRenderer, color.r, color.g, color.b, color.a)
@@ -147,6 +151,9 @@ proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect], color: Color):
   for rect in rects:
     renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
 
+proc drawCircle*(renderer: Renderer, circle: Circle, color: Color): void =
+  renderer.setDrawColor(color)
+
 proc setVSync*(renderer: Renderer, state: bool): void =
   discard setRenderVSync(renderer.sdlRenderer, state.int32)
 
@@ -154,6 +161,7 @@ proc render*(renderer: Renderer): void =
   discard renderPresent(renderer.sdlRenderer)
 
 proc kill*(renderer: Renderer): void =
+  destroyRendererTextEngine(renderer.textEngine)
   destroyRenderer(renderer.sdlRenderer)
 
 proc quit*(): void =
@@ -174,38 +182,8 @@ proc down*(key: Key): bool =
   var numKeys: int32
   return getKeyboardState(numKeys)[ord(key)]
 
-proc initVideo*(): bool =
-  sdl3.init(INIT_VIDEO)
-
-proc initAudio*(): bool =
-  if sdl3.init(INIT_AUDIO):
-    return sdl3_mixer.init()
-  else:
-    return false
-
-proc initJoystick*(): bool =
-  sdl3.init(INIT_JOYSTICK)
-
-proc initHaptic*(): bool =
-  sdl3.init(INIT_HAPTIC)
-
-proc initGamepad*(): bool =
-  sdl3.init(INIT_GAMEPAD)
-
-proc initEvents*(): bool =
-  sdl3.init(INIT_EVENTS)
-
-proc initSensor*(): bool =
-  sdl3.init(INIT_SENSOR)
-
-proc initCamera*(): bool =
-  sdl3.init(INIT_CAMERA)
-
-proc initText*(): bool =
-  sdl3_ttf.init()
-
 proc createAudioPlayer*(): AudioPlayer =
-  if initAudio():
+  if sdl3_mixer.init():
     let mixer: Mixer = createMixerDevice(AUDIO_DEVICE_DEFAULT_PLAYBACK, nil)
     if mixer == nil:
       echo "Couldn't create audio player"
