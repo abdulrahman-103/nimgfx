@@ -29,21 +29,28 @@ rect3.h = 70
 
 proc down(rect: var Rect, distance: cfloat) =
   rect.y += distance
-
 proc up(rect: var Rect, distance: cfloat) =
   rect.y -= distance
-
 proc right(rect: var Rect, distance: cfloat) =
   rect.x += distance
-
 proc left(rect: var Rect, distance: cfloat) =
   rect.x -= distance
+
+proc down(circle: var Circle, distance: cfloat) =
+  circle.y += distance
+proc up(circle: var Circle, distance: cfloat) =
+  circle.y -= distance
+proc right(circle: var Circle, distance: cfloat) =
+  circle.x += distance
+proc left(circle: var Circle, distance: cfloat) =
+  circle.x -= distance
   
 let amiri: Font = loadFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
 let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
 let tux: Image = renderer.loadImage("tux.png")
 let audioPlayer = createAudioPlayer()
 let pushBox = audioPlayer.loadAudio("/home/abdulrahman/the_grandfather_paradox/box/push_box.wav")
+var circle = Circle(x: 50, y: 50, radius: 50)
 
 window.setResizable(true)
 renderer.setScaling(500, 500, LetterboxScaling)
@@ -60,16 +67,16 @@ while running:
     if event.pressed(Escape):
         running = false
     if event.pressed(Down):
-      rect2.down(10)
+      circle.down(10)
     if event.pressed(Up):
-      rect2.up(10)
+      circle.up(10)
     if event.pressed(Right):
-      rect2.right(10)
+      circle.right(10)
     if event.pressed(Left):
       audioPlayer.playAudio(pushBox)
     
   if down(Left):
-    rect2.left(1)
+    circle.left(1)
   else:
       audioPlayer.stopAudio()
   
@@ -79,6 +86,7 @@ while running:
   renderer.drawDebugText("hello world", 200, 200, Black)
   renderer.drawImage(tux, 250, 50)
   renderer.drawText(helloWorld, 50, 50)
+  renderer.drawCircle(circle, Brown)
   renderer.render()
 
 renderer.kill()

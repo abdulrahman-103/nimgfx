@@ -1,4 +1,4 @@
-import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer]
+import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math
 import nimgfx/[keys, vectors]
 export keys, vectors
 
@@ -31,6 +31,8 @@ type
   Rect* = FRect
 
   Circle* = object
+    x*, y*: float
+    radius*: float
 
   AudioPlayer* = Mixer
 
@@ -57,6 +59,12 @@ const Green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
 const Blue*: Color = Color(r: 0, g: 0, b: 255, a: 255)
 const White*: Color = Color(r: 255, g: 255, b: 255, a: 255)
 const Black*: Color = Color(r: 0, g: 0, b: 0, a: 255)
+const Gray*: Color = Color(r: 128, g: 128, b: 128, a: 255)
+const Cyan*: Color = Color(r: 0, g: 255, b: 255, a: 255)
+const Magenta*: Color = Color(r: 255, g: 0, b: 255, a: 255)
+const Yellow*: Color = Color(r: 255, g: 255, b: 0, a: 255)
+const Orange*: Color = Color(r: 255, g: 127, b: 0, a: 255)
+const Brown*: Color = Color(r: 139, g: 69, b: 19, a: 255)
 
 proc create*(window: Window): void =
   window.sdlWindow = createWindow(window.title.cstring, window.w.int32, window.h.int32, window.flags)
@@ -151,8 +159,23 @@ proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect], color: Color):
   for rect in rects:
     renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
 
-proc drawCircle*(renderer: Renderer, circle: Circle, color: Color): void =
-  renderer.setDrawColor(color)
+proc drawCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
+  var vertices = newSeq[Vertex](segments + 1)
+  let vertexColor = FColor(
+    r: color.r.float32 / 255,
+    g: color.g.float32 / 255,
+    b: color.b.float32 / 255,
+    a: color.a.float32 / 255)
+  vertices[0] = Vertex(position: FPoint(x: circle.x, y: circle.y), color: vertexColor)
+  for i in 0 ..< segments:
+    let angle = 2.0'f32 * PI.float32 * i.float32 / segments.float32
+    vertices[i + 1] = Vertex(position: FPoint(x: circle.x + cos(angle) * circle.radius, y: circle.y + sin(angle) * circle.radius), color: vertexColor)
+  var indices = newSeq[cint](segments * 3)
+  for i in 0 ..< segments:
+    indices[i * 3] = 0
+    indices[i * 3 + 1] = cint(i+1)
+    indices[i * 3 + 2] = cint((i+1) mod segments + 1)
+  discard renderGeometry(renderer.sdlRenderer, nil, addr vertices[0], vertices.len.cint, addr indices[0], indices.len.cint)
 
 proc setVSync*(renderer: Renderer, state: bool): void =
   discard setRenderVSync(renderer.sdlRenderer, state.int32)
