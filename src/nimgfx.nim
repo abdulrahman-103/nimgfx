@@ -1,4 +1,4 @@
-import sdl3/[sdl3, sdl3_ttf, sdl3_image]
+import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer]
 import nimgfx/[keys, vectors]
 export keys, vectors
 
@@ -29,6 +29,8 @@ type
   Event* = sdl3.Event
 
   Rect* = FRect
+
+  AudioPlayer* = Mixer
 
   Image* = object
     texture*: Texture
@@ -148,7 +150,10 @@ proc initVideo*(): bool =
   sdl3.init(INIT_VIDEO)
 
 proc initAudio*(): bool =
-  sdl3.init(INIT_AUDIO)
+  if sdl3.init(INIT_AUDIO):
+    return sdl3_mixer.init()
+  else:
+    return false
 
 proc initJoystick*(): bool =
   sdl3.init(INIT_JOYSTICK)
@@ -171,25 +176,28 @@ proc initCamera*(): bool =
 proc initText*(): bool =
   sdl3_ttf.init()
 
-var streams: seq[AudioStream] = @[]
+proc createAudioPlayer*(): AudioPlayer =
+  if initAudio():
+    let mixer: Mixer = createMixerDevice(AUDIO_DEVICE_DEFAULT_PLAYBACK, nil)
+    if mixer == nil:
+      echo "Couldn't create audio player"
+      sdl3.quit()
+    else:
+      return mixer
+  else:
+    echo "Couldn't initialize audio"
+    sdl3.quit()
+  
+proc loadAudio*(audioPlayer: AudioPlayer, path: string): Audio =
+  sdl3_mixer.loadAudio(audioPlayer, path, true)
 
-proc playAudio*(path: string): void =
-  var spec: AudioSpec
-  var buffer: ptr uint8
-  var length: uint32
-  if loadWAV(path.cstring, addr spec, buffer, length):
-    if streams.len > 0:
-      for i in countdown(streams.high, 0):
-        if getAudioStreamQueued(streams[i]) == 0:
-          destroyAudioStream(streams[i])
-          streams.delete(i)
-    var stream: AudioStream = openAudioDeviceStream(AUDIO_DEVICE_DEFAULT_PLAYBACK, spec, nil, nil)
-    streams.add(stream)
-    discard putAudioStreamData(stream, buffer, length.int32)
-    sdlFree(buffer)
-    discard resumeAudioStreamDevice(stream)
+proc playAudio*(audioPlayer: AudioPlayer, audio: Audio): void =
+  discard sdl3_mixer.playAudio(audioPlayer, audio)
 
-proc createFont*(path: string, size: int): Font =
+proc stopAudio*(audioPlayer: AudioPlayer): void =
+  discard sdl3_mixer.stopAllTracks(audioPlayer, 0)
+
+proc loadFont*(path: string, size: int): Font =
   openFont(path, 50)
 
 proc kill*(font: Font): void =
@@ -210,11 +218,11 @@ proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Colo
 proc kill*(text: Text): void =
   destroyText(text)
 
-proc createImage*(renderer: Renderer, image: string): Image =
+proc loadImage*(renderer: Renderer, image: string): Image =
   let texture = loadTexture(renderer.sdlRenderer, image.cstring)
   if texture == nil:
     echo "Couldn't load image"
-    quit(1)
+    sdl3.quit()
   var w, h: cfloat
   discard getTextureSize(texture, w, h)
   return Image(texture: texture, w: w, h: h)

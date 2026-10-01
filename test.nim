@@ -4,10 +4,6 @@ if not initVideo():
   echo "Couldn't Initialize Video"
   quit(1)
 
-if not initAudio():
-  echo "Couldn't Initialize Audio"
-  quit(1)
-
 if not initText():
   echo "Couldn't Initialize Text"
   quit(1)
@@ -45,9 +41,11 @@ proc right(rect: var Rect, distance: cfloat) =
 proc left(rect: var Rect, distance: cfloat) =
   rect.x -= distance
   
-let amiri: Font = createFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
+let amiri: Font = loadFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
 let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
-let tux: Image = renderer.createImage("tux.svg")
+let tux: Image = renderer.loadImage("tux.png")
+let audioPlayer = createAudioPlayer()
+let pushBox = audioPlayer.loadAudio("/home/abdulrahman/the_grandfather_paradox/box/push_box.wav")
 
 while running:
 
@@ -67,11 +65,13 @@ while running:
       rect.up(10)
     if event.pressed(Right):
       rect.right(10)
-      playAudio("/home/abdulrahman/the_grandfather_paradox/chests/open_chest.wav")
-      
+    if event.pressed(Left):
+      audioPlayer.playAudio(pushBox)
     
   if Left.down():
     rect.left(1)
+  else:
+      audioPlayer.stopAudio()
   
   renderer.clear(Red)
   renderer.drawText(helloWorld, 50, 50)
