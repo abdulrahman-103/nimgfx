@@ -18,10 +18,10 @@ renderer.setVSync(true)
 var running: bool = true
 
 var rect: Rect
-rect.x = 300
-rect.y = 100
-rect.w = 50
-rect.h = 50
+rect.x = 0
+rect.y = 0
+rect.w = 500
+rect.h = 500
 
 var rect2: Rect
 rect2.x = 300
@@ -47,6 +47,9 @@ let tux: Image = renderer.loadImage("tux.png")
 let audioPlayer = createAudioPlayer()
 let pushBox = audioPlayer.loadAudio("/home/abdulrahman/the_grandfather_paradox/box/push_box.wav")
 
+window.setResizable(true)
+renderer.setScaling(250, 250, OverscanScaling)
+
 while running:
 
   var event: Event
@@ -68,7 +71,7 @@ while running:
     if event.pressed(Left):
       audioPlayer.playAudio(pushBox)
     
-  if Left.down():
+  if down(Left):
     rect.left(1)
   else:
       audioPlayer.stopAudio()

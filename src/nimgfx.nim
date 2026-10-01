@@ -35,7 +35,15 @@ type
   Image* = object
     texture*: Texture
     w*, h*: float
-    
+  
+  ScalingMode* = RendererLogicalPresentation
+
+const
+  NoScaling* = LOGICAL_PRESENTATION_DISABLED
+  StretchScaling* = LOGICAL_PRESENTATION_STRETCH
+  LetterboxScaling* = LOGICAL_PRESENTATION_LETTERBOX
+  OverscanScaling* = LOGICAL_PRESENTATION_OVERSCAN
+  IntegerScaling* = LOGICAL_PRESENTATION_INTEGER_SCALE
     
 const 
   quitEvent*: EventType = EVENT_QUIT
@@ -75,6 +83,15 @@ proc getPosition*(window: Window): array[2, int32] =
 
 proc setFullscreen*(window: Window, state: bool): void =
   discard setWindowFullscreen(window.sdlWindow, state)
+
+proc setResizable*(window: Window, state: bool): void =
+  discard setWindowResizable(window.sdlWindow, state)
+
+proc setAspectRatio*(window: Window; min, max: float): void =
+  discard setWindowAspectRatio(window.sdlWindow, min, max)
+
+proc setScaling*(renderer: Renderer; w, h: int, mode: ScalingMode): void =
+  discard setRenderLogicalPresentation(renderer.sdlRenderer, w.cint, h.cint, mode)
 
 proc kill*(window: Window): void =
   destroyWindow(window.sdlWindow)
