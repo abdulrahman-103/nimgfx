@@ -133,8 +133,19 @@ proc drawRect*(renderer: Renderer, rect: Rect, color: Color): void =
   discard renderFillRect(renderer.sdlRenderer, rect)
 
 proc drawRects*(renderer: Renderer, rects: openArray[Rect], color: Color): void =
+  if rects.len == 0: return
   renderer.setDrawColor(color)
   discard renderFillRects(renderer.sdlRenderer, rects)
+
+proc drawHollowRect*(renderer: Renderer, rect: Rect, color: Color): void =
+  renderer.setDrawColor(color)
+  renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
+
+proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect], color: Color): void =
+  if rects.len == 0: return
+  renderer.setDrawColor(color)
+  for rect in rects:
+    renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
 
 proc setVSync*(renderer: Renderer, state: bool): void =
   discard setRenderVSync(renderer.sdlRenderer, state.int32)
