@@ -6,6 +6,7 @@ nimgfx
 keys
 tarsis
 input
+test
 *.out
 vectors
 sdl3
