@@ -29,6 +29,11 @@ type
   Event* = sdl3.Event
 
   Rect* = FRect
+
+  Image* = object
+    texture*: Texture
+    w*, h*: float
+    
     
 const 
   quitEvent*: EventType = EVENT_QUIT
@@ -204,3 +209,20 @@ proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Colo
   
 proc kill*(text: Text): void =
   destroyText(text)
+
+proc createImage*(renderer: Renderer, image: string): Image =
+  let texture = loadTexture(renderer.sdlRenderer, image.cstring)
+  if texture == nil:
+    echo "Couldn't load image"
+    quit(1)
+  var w, h: cfloat
+  discard getTextureSize(texture, w, h)
+  return Image(texture: texture, w: w, h: h)
+
+proc drawImage*(renderer: Renderer, image: Image; x, y: float): void =
+  var dstrect: Rect
+  dstrect.x = x
+  dstrect.y = y
+  dstrect.w = image.w
+  dstrect.h = image.h
+  discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)

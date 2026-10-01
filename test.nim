@@ -47,6 +47,7 @@ proc left(rect: var Rect, distance: cfloat) =
   
 let amiri: Font = createFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
 let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
+let tux: Image = renderer.createImage("tux.svg")
 
 while running:
 
@@ -76,6 +77,7 @@ while running:
   renderer.drawText(helloWorld, 50, 50)
   renderer.drawRects([rect, rect2], Green)
   renderer.drawDebugText("hello world", 200, 200, Black)
+  renderer.drawImage(tux, 250, 50)
   renderer.render()
 
 renderer.kill()
