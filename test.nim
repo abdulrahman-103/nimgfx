@@ -74,6 +74,10 @@ while running:
       circle.right(10)
     if event.pressed(Left):
       audioPlayer.playAudio(pushBox)
+    let pos = event.getMousePosition()
+    if event.pressed(mouseLeftButton):
+      if pos.x >= rect2.x and pos.x <= rect2.x + rect2.w and pos.y >= rect2.y and pos.y <= rect2.y + rect2.h:
+        echo "مربع"
     
   if down(Left):
     circle.left(1)
@@ -82,7 +86,7 @@ while running:
   
   renderer.clear(Red)
   renderer.drawRect(rect, Green)
-  renderer.drawHollowRects([rect2, rect3], Blue)
+  renderer.drawRect(rect2, Blue)
   renderer.drawDebugText("hello world", 200, 200, Black)
   renderer.drawImage(tux, 250, 50)
   renderer.drawText(helloWorld, 50, 50)

@@ -53,6 +53,16 @@ const
   quitEvent*: EventType = EVENT_QUIT
   keyDownEvent*: EventType = EVENT_KEY_DOWN
   keyUpEvent*: EventType = EVENT_KEY_UP
+  mouseButtonDownEvent*: EventType = EVENT_MOUSE_BUTTON_DOWN
+  mouseButtonUpEvent*: EventType = EVENT_MOUSE_BUTTON_UP
+  
+type mouseButton* = enum
+  mouseLeftButton = BUTTON_LEFT
+  mouseMiddleButton = BUTTON_MIDDLE
+  mouseRightButton = BUTTON_RIGHT
+  mouseBackButton = BUTTON_X1
+  mouseForwardButton = BUTTON_X2
+
 
 const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
 const Green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
@@ -204,6 +214,19 @@ proc released*(event: Event, key: Key): bool =
 proc down*(key: Key): bool =
   var numKeys: int32
   return getKeyboardState(numKeys)[ord(key)]
+
+proc pressed*(event: Event, button: mouseButton): bool =
+  if event.type == mouseButtonDownEvent:
+    return mouseButton(event.button.button) == button
+
+proc released*(event: Event, button: mouseButton): bool =
+  if event.type == mouseButtonUpEvent:
+    return mouseButton(event.button.button) == button
+
+proc getMousePosition*(event: Event): tuple[x, y: float] =
+  var x, y: cfloat
+  discard getMouseState(x, y)
+  return (x.float, y.float)
 
 proc createAudioPlayer*(): AudioPlayer =
   if sdl3_mixer.init():
