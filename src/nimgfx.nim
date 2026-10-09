@@ -42,6 +42,26 @@ type
   
   ScalingMode* = RendererLogicalPresentation
 
+  MouseButton* = enum
+    mouseLeftButton = BUTTON_LEFT
+    mouseMiddleButton = BUTTON_MIDDLE
+    mouseRightButton = BUTTON_RIGHT
+    mouseBackButton = BUTTON_X1
+    mouseForwardButton = BUTTON_X2
+
+  MouseButtonMask = enum
+    mouseLeftButtonMask = BUTTON_LMASK
+    mouseMiddleButtonMask = BUTTON_MMASK
+    mouseRightButtonMask = BUTTON_RMASK
+    mouseBackButtonMask = BUTTON_X1MASK
+    mouseForwardButtonMask = BUTTON_X2MASK
+
+
+  Button* = object
+    text*: Text
+    w*, h*, x*, y*: float
+    color*: Color
+
 const
   NoScaling* = LOGICAL_PRESENTATION_DISABLED
   StretchScaling* = LOGICAL_PRESENTATION_STRETCH
@@ -50,18 +70,11 @@ const
   IntegerScaling* = LOGICAL_PRESENTATION_INTEGER_SCALE
     
 const 
-  quitEvent*: EventType = EVENT_QUIT
-  keyDownEvent*: EventType = EVENT_KEY_DOWN
-  keyUpEvent*: EventType = EVENT_KEY_UP
-  mouseButtonDownEvent*: EventType = EVENT_MOUSE_BUTTON_DOWN
-  mouseButtonUpEvent*: EventType = EVENT_MOUSE_BUTTON_UP
-  
-type mouseButton* = enum
-  mouseLeftButton = BUTTON_LEFT
-  mouseMiddleButton = BUTTON_MIDDLE
-  mouseRightButton = BUTTON_RIGHT
-  mouseBackButton = BUTTON_X1
-  mouseForwardButton = BUTTON_X2
+  QuitEvent*: EventType = EVENT_QUIT
+  KeyDownEvent*: EventType = EVENT_KEY_DOWN
+  KeyUpEvent*: EventType = EVENT_KEY_UP
+  MouseButtonDownEvent*: EventType = EVENT_MOUSE_BUTTON_DOWN
+  MouseButtonUpEvent*: EventType = EVENT_MOUSE_BUTTON_UP
 
 
 const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
@@ -204,28 +217,51 @@ proc pollEvent*(event: var Event): bool =
   sdl3.pollEvent(event)
 
 proc pressed*(event: Event, key: Key): bool =
-  if event.type == keyDownEvent:
+  if event.type == KeyDownEvent:
     return event.key.scancode == key and not event.key.repeat
 
 proc released*(event: Event, key: Key): bool =
-  if event.type == keyUpEvent:
+  if event.type == KeyUpEvent:
     return event.key.scancode == key
 
 proc down*(key: Key): bool =
   var numKeys: int32
   return getKeyboardState(numKeys)[ord(key)]
 
-proc pressed*(event: Event, button: mouseButton): bool =
-  if event.type == mouseButtonDownEvent:
-    return mouseButton(event.button.button) == button
+proc pressed*(event: Event, button: MouseButton): bool =
+  if event.type == MouseButtonDownEvent:
+    return MouseButton(event.button.button) == button
 
-proc released*(event: Event, button: mouseButton): bool =
-  if event.type == mouseButtonUpEvent:
-    return mouseButton(event.button.button) == button
+proc released*(event: Event, button: MouseButton): bool =
+  if event.type == MouseButtonUpEvent:
+    return MouseButton(event.button.button) == button
 
-proc getMousePosition*(event: Event): tuple[x, y: float] =
+proc down*(button: MouseButton): bool =
+  var x, y: cfloat
+  let state = getMouseState(x, y)
+  case button:
+  of mouseLeftButton:
+    if (state and uint32(mouseLeftButtonMask)) != 0:
+      return true
+  of mouseRightButton:
+    if (state and uint32(mouseRightButtonMask)) != 0:
+      return true
+  of mouseMiddleButton:
+    if (state and uint32(mouseMiddleButtonMask)) != 0:
+      return true
+  of mouseBackButton:
+    if (state and uint32(mouseBackButtonMask)) != 0:
+      return true
+  of mouseForwardButton:
+    if (state and uint32(mouseForwardButtonMask)) != 0:
+      return true
+  else:
+    return false
+
+proc getMousePosition*(renderer: Renderer): tuple[x, y: float] =
   var x, y: cfloat
   discard getMouseState(x, y)
+  discard renderCoordinatesFromWindow(renderer.sdlRenderer, x, y, x, y)
   return (x.float, y.float)
 
 proc createAudioPlayer*(): AudioPlayer =
@@ -249,8 +285,8 @@ proc playAudio*(audioPlayer: AudioPlayer, audio: Audio): void =
 proc stopAudio*(audioPlayer: AudioPlayer): void =
   discard sdl3_mixer.stopAllTracks(audioPlayer, 0)
 
-proc loadFont*(path: string, size: int): Font =
-  openFont(path, 50)
+proc loadFont*(path: string, size: float): Font =
+  openFont(path, size)
 
 proc kill*(font: Font): void =
   closeFont(font)
@@ -286,3 +322,35 @@ proc drawImage*(renderer: Renderer, image: Image; x, y: float): void =
   dstrect.w = image.w
   dstrect.h = image.h
   discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)
+
+proc hovered*(button: Button, renderer: Renderer): bool =
+  let pos = renderer.getMousePosition()
+  if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+    return true
+  else:
+    return false
+
+proc down*(button: Button, renderer: Renderer): bool =
+  let pos = renderer.getMousePosition()
+  if down(mouseLeftButton):
+    if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+      return true
+    else:
+      return false
+  else:
+    return false
+
+proc drawButton*(renderer: Renderer, button: Button): void =
+  var color: Color
+  if down(button, renderer):
+    color = Color(r: 47, g: 83, b: 104, a: 255)
+  else:
+    color = Color(r: 49, g: 54, b: 59, a: 255)
+  var borderColor: Color
+  if button.hovered(renderer):
+    borderColor = Color(r: 61, g: 174, b: 233, a: 255)
+  else:
+    borderColor = Color(r: 77, g: 80, b: 83, a: 255)
+  renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h), color)
+  renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h), borderColor)
+  renderer.drawText(button.text, button.x, button.y)

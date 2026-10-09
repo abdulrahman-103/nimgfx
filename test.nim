@@ -45,13 +45,13 @@ proc right(circle: var Circle, distance: cfloat) =
 proc left(circle: var Circle, distance: cfloat) =
   circle.x -= distance
   
-let amiri: Font = loadFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 40)
+let amiri: Font = loadFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 22)
 let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
 let tux: Image = renderer.loadImage("tux.png")
 let audioPlayer = createAudioPlayer()
 let pushBox = audioPlayer.loadAudio("/home/abdulrahman/the_grandfather_paradox/box/push_box.wav")
 var circle = Circle(x: 50, y: 50, radius: 50)
-
+let button = Button(x: 50, y: 50, w: 100, h: 40, text: helloworld, color: Red)
 window.setResizable(true)
 renderer.setScaling(500, 500, LetterboxScaling)
 
@@ -59,7 +59,7 @@ while running:
   var event: Event
   while pollEvent(event):
     case event.type
-    of quitEvent:
+    of QuitEvent:
       running = false
     else:
       discard
@@ -74,23 +74,20 @@ while running:
       circle.right(10)
     if event.pressed(Left):
       audioPlayer.playAudio(pushBox)
-    let pos = event.getMousePosition()
-    if event.pressed(mouseLeftButton):
-      if pos.x >= rect2.x and pos.x <= rect2.x + rect2.w and pos.y >= rect2.y and pos.y <= rect2.y + rect2.h:
-        echo "مربع"
     
   if down(Left):
     circle.left(1)
   else:
       audioPlayer.stopAudio()
   
-  renderer.clear(Red)
-  renderer.drawRect(rect, Green)
-  renderer.drawRect(rect2, Blue)
-  renderer.drawDebugText("hello world", 200, 200, Black)
+  renderer.clear(Black)
+  renderer.drawRect(rect, White)
+  #renderer.drawRect(rect2, Blue)
+  #renderer.drawDebugText("hello world", 200, 200, Black)
   renderer.drawImage(tux, 250, 50)
-  renderer.drawText(helloWorld, 50, 50)
-  renderer.drawCircle(circle, Brown)
+  #renderer.drawText(helloWorld, 50, 50)
+  #renderer.drawCircle(circle, Brown)
+  renderer.drawButton(button)
   renderer.render()
 
 renderer.kill()
