@@ -28,16 +28,20 @@ type
 
   Event* = sdl3.Event
 
-  Rect* = FRect
+  Rect* = object
+    x*, y*: float = 0
+    w*, h*: float
+    color*: Color
 
   Circle* = object
-    x*, y*: float
+    x*, y*: float = 0
     radius*: float
 
   AudioPlayer* = Mixer
 
   Image* = object
     texture*: Texture
+    x*, y*: float = 0
     w*, h*: float
   
   ScalingMode* = RendererLogicalPresentation
@@ -57,10 +61,11 @@ type
     mouseForwardButtonMask = BUTTON_X2MASK
 
 
-  Button* = object
+  Button* = ref object
     text*: Text
     w*, h*, x*, y*: float
     color*: Color
+    fromOutside: bool = false
 
 const
   NoScaling* = LOGICAL_PRESENTATION_DISABLED
@@ -163,24 +168,22 @@ proc drawLines*(renderer: Renderer, points: openArray[Vector2], color: Color): v
   let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
   discard renderLines(renderer.sdlRenderer, toOpenArray(pointsPtr, points.low, points.high))
 
-proc drawRect*(renderer: Renderer, rect: Rect, color: Color): void =
-  renderer.setDrawColor(color)
-  discard renderFillRect(renderer.sdlRenderer, rect)
+proc drawRect*(renderer: Renderer, rect: Rect): void =
+  renderer.setDrawColor(rect.color)
+  let sdlRect: FRect = FRect(x: rect.x, y: rect.y, w: rect.w, h: rect.h)
+  discard renderFillRect(renderer.sdlRenderer, sdlRect)
 
-proc drawRects*(renderer: Renderer, rects: openArray[Rect], color: Color): void =
-  if rects.len == 0: return
-  renderer.setDrawColor(color)
-  discard renderFillRects(renderer.sdlRenderer, rects)
-
-proc drawHollowRect*(renderer: Renderer, rect: Rect, color: Color): void =
-  renderer.setDrawColor(color)
-  renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
-
-proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect], color: Color): void =
-  if rects.len == 0: return
-  renderer.setDrawColor(color)
+proc drawRects*(renderer: Renderer, rects: openArray[Rect]): void =
   for rect in rects:
-    renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], color)
+    drawRect(renderer, rect)
+
+proc drawHollowRect*(renderer: Renderer, rect: Rect): void =
+  renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], rect.color)
+
+proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect]): void =
+  if rects.len == 0: return
+  for rect in rects:
+    renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], rect.color)
 
 proc drawCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
   var vertices = newSeq[Vertex](segments + 1)
@@ -315,13 +318,19 @@ proc loadImage*(renderer: Renderer, image: string): Image =
   discard getTextureSize(texture, w, h)
   return Image(texture: texture, w: w, h: h)
 
-proc drawImage*(renderer: Renderer, image: Image; x, y: float): void =
-  var dstrect: Rect
-  dstrect.x = x
-  dstrect.y = y
+proc drawImage*(renderer: Renderer, image: Image): void =
+  var dstrect: FRect
+  dstrect.x = image.x
+  dstrect.y = image.y
   dstrect.w = image.w
   dstrect.h = image.h
   discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)
+
+proc inside*(pos: tuple[x, y: float], button: Button): bool =
+  if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+    return true
+  else:
+    return false
 
 proc hovered*(button: Button, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
@@ -340,9 +349,24 @@ proc down*(button: Button, renderer: Renderer): bool =
   else:
     return false
 
+proc pressed*(event: Event, button: Button, renderer: Renderer): bool =
+  let pos = renderer.getMousePosition()
+  if event.pressed(mouseLeftButton):
+    if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+      return true
+    else:
+      return false
+  else:
+    return false
+
 proc drawButton*(renderer: Renderer, button: Button): void =
+  let mousePos = renderer.getMousePosition()
+  if not mousePos.inside(button) and mouseLeftButton.down():
+    button.fromOutside = true
+  if not mouseLeftButton.down():
+    button.fromOutside = false
   var color: Color
-  if down(button, renderer):
+  if down(button, renderer) and not button.fromOutside:
     color = Color(r: 47, g: 83, b: 104, a: 255)
   else:
     color = Color(r: 49, g: 54, b: 59, a: 255)
@@ -351,6 +375,6 @@ proc drawButton*(renderer: Renderer, button: Button): void =
     borderColor = Color(r: 61, g: 174, b: 233, a: 255)
   else:
     borderColor = Color(r: 77, g: 80, b: 83, a: 255)
-  renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h), color)
-  renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h), borderColor)
+  renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: color))
+  renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: borderColor))
   renderer.drawText(button.text, button.x, button.y)

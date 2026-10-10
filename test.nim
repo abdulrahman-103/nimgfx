@@ -9,23 +9,13 @@ renderer.setVSync(true)
 
 var running: bool = true
 
-var rect: Rect
-rect.x = 0
-rect.y = 0
-rect.w = 500
-rect.h = 500
+var background: Rect
+background.x = 0
+background.y = 0
+background.w = 500
+background.h = 500
+background.color = White
 
-var rect2: Rect
-rect2.x = 100
-rect2.y = 150
-rect2.w = 50
-rect2.h = 50
-
-var rect3: Rect
-rect3.x = 120
-rect3.y = 120
-rect3.w = 50
-rect3.h = 70
 
 proc down(rect: var Rect, distance: cfloat) =
   rect.y += distance
@@ -47,7 +37,8 @@ proc left(circle: var Circle, distance: cfloat) =
   
 let amiri: Font = loadFont("/usr/share/fonts/amiri-fonts/Amiri-Regular.ttf", 22)
 let helloWorld: Text = renderer.createText("hello world", amiri, Blue)
-let tux: Image = renderer.loadImage("tux.png")
+var tux: Image = renderer.loadImage("tux.png")
+tux.x = 200
 let audioPlayer = createAudioPlayer()
 let pushBox = audioPlayer.loadAudio("/home/abdulrahman/the_grandfather_paradox/box/push_box.wav")
 var circle = Circle(x: 50, y: 50, radius: 50)
@@ -74,6 +65,12 @@ while running:
       circle.right(10)
     if event.pressed(Left):
       audioPlayer.playAudio(pushBox)
+    if event.pressed(button, renderer):
+      if background.color == White:
+        background.color = Red
+      else:
+        background.color = White
+
     
   if down(Left):
     circle.left(1)
@@ -81,12 +78,8 @@ while running:
       audioPlayer.stopAudio()
   
   renderer.clear(Black)
-  renderer.drawRect(rect, White)
-  #renderer.drawRect(rect2, Blue)
-  #renderer.drawDebugText("hello world", 200, 200, Black)
-  renderer.drawImage(tux, 250, 50)
-  #renderer.drawText(helloWorld, 50, 50)
-  #renderer.drawCircle(circle, Brown)
+  renderer.drawRect(background)
+  renderer.drawImage(tux)
   renderer.drawButton(button)
   renderer.render()
 
