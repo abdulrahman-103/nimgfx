@@ -341,7 +341,7 @@ proc hovered*(button: Button, renderer: Renderer): bool =
 
 proc down*(button: Button, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
-  if down(mouseLeftButton):
+  if down(mouseLeftButton) and not button.fromOutside:
     if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
       return true
     else:
@@ -366,7 +366,7 @@ proc drawButton*(renderer: Renderer, button: Button): void =
   if not mouseLeftButton.down():
     button.fromOutside = false
   var color: Color
-  if down(button, renderer) and not button.fromOutside:
+  if down(button, renderer):
     color = Color(r: 47, g: 83, b: 104, a: 255)
   else:
     color = Color(r: 49, g: 54, b: 59, a: 255)
