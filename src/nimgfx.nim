@@ -378,3 +378,9 @@ proc drawButton*(renderer: Renderer, button: Button): void =
   renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: color))
   renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: borderColor))
   renderer.drawText(button.text, button.x, button.y)
+
+proc getTicksMS*(): uint64 =
+  sdl3.getTicks()
+
+proc getTicksNS*(): uint64 =
+  sdl3.getTicksNS()

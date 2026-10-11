@@ -6,8 +6,8 @@
 import ../src/nimgfx, random
 var running = true
 
-var last_time: uint64 = SDL_GetTicksNS()
-var current_time: uint64 = SDL_GetTicksNS()
+var last_time: uint64 = getTicksNS()
+var current_time: uint64 = getTicksNS()
 var frame_time: float
 
 type
@@ -16,7 +16,6 @@ type
   Block* = object
     column*: int
     row*: int
-    color*: Color
 
   Piece* = object
     kind*: PieceType
@@ -870,19 +869,17 @@ var window = Window(title: "Tarsis", w: x.int32, h: y.int32)
 window.create()
 var renderer = Renderer(window: window)
 renderer.create()
-renderer.setVSync(On)
-if not init(InitVideo):
-  echo "Couldn't initialize SDL"
+renderer.setVSync(true)
 
 while running:
-  current_time = SDL_GetTicksNS()
+  current_time = getTicksNS()
   frame_time = float(current_time - last_time) / 1000000000
   last_time = current_time
 
   var event: Event
   while pollEvent(event):
     case event.type
-    of quitEvent:
+    of QuitEvent:
       running = false
     else:
       discard
@@ -946,8 +943,9 @@ while running:
           x: column.float * block_length,
           y: row.float * block_length,
           w: block_length - block_margin,
-          h: block_length - block_margin)
-        renderer.drawRect(rect, White)
+          h: block_length - block_margin,
+          color: White)
+        renderer.drawRect(rect)
       inc(column)
     inc(row)
 
