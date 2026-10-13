@@ -3,6 +3,7 @@ nimblecache/
 htmldocs/
 main
 nimgfx
+!nimgfx/
 keys
 tarsis
 input
