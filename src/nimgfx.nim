@@ -100,24 +100,24 @@ proc create*(window: Window): void =
 proc setSize*(window: Window; w, h: int32): void =
   discard setWindowSize(window.sdlWindow, w.int32, h.int32)
 
-proc getSize*(window: Window): array[2, int32] =
+proc getSize*(window: Window): tuple[w, h: int32] =
   var w: int32
   var h: int32
   if getWindowSize(window.sdlWindow, w, h): 
-    [w.int32, h.int32]
+    (w.int32, h.int32)
   else:
-    [0, 0]
+    (0, 0)
 
 proc setPosition*(window: Window; x, y: int32): void =
   discard setWindowPosition(window.sdlWindow, x.int32, y.int32)
 
-proc getPosition*(window: Window): array[2, int32] =
+proc getPosition*(window: Window): tuple[x, y: int32] =
   var x: int32
   var y: int32
   if getWindowPosition(window.sdlWindow, x, y): 
-    [x.int32, y.int32]
+    (x.int32, y.int32)
   else:
-    [0, 0]
+    (0, 0)
 
 proc setFullscreen*(window: Window, state: bool): void =
   discard setWindowFullscreen(window.sdlWindow, state)
@@ -128,7 +128,7 @@ proc setResizable*(window: Window, state: bool): void =
 proc setAspectRatio*(window: Window; min, max: float): void =
   discard setWindowAspectRatio(window.sdlWindow, min, max)
 
-proc setScaling*(renderer: Renderer; w, h: int, mode: ScalingMode): void =
+proc setLogicalPixels*(renderer: Renderer; w, h: int, mode: ScalingMode): void =
   discard setRenderLogicalPresentation(renderer.sdlRenderer, w.cint, h.cint, mode)
 
 proc kill*(window: Window): void =
@@ -258,8 +258,6 @@ proc down*(button: MouseButton): bool =
   of mouseForwardButton:
     if (state and uint32(mouseForwardButtonMask)) != 0:
       return true
-  else:
-    return false
 
 proc getMousePosition*(renderer: Renderer): tuple[x, y: float] =
   var x, y: cfloat

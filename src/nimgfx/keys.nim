@@ -1,0 +1,115 @@
+import ../sdl3/sdl3
+
+type Key* = Scancode
+const
+  Left*: Key = SCANCODE_LEFT
+  Right*: Key = SCANCODE_RIGHT
+  Up*: Key = SCANCODE_UP
+  Down*: Key = SCANCODE_DOWN
+
+  A*: Key = SCANCODE_A
+  B*: Key = SCANCODE_B
+  C*: Key = SCANCODE_C
+  D*: Key = SCANCODE_D
+  E*: Key = SCANCODE_E
+  F*: Key = SCANCODE_F
+  G*: Key = SCANCODE_G
+  H*: Key = SCANCODE_H
+  I*: Key = SCANCODE_I
+  J*: Key = SCANCODE_J
+  K*: Key = SCANCODE_K
+  L*: Key = SCANCODE_L
+  M*: Key = SCANCODE_M
+  N*: Key = SCANCODE_N
+  O*: Key = SCANCODE_O
+  P*: Key = SCANCODE_P
+  Q*: Key = SCANCODE_Q
+  R*: Key = SCANCODE_R
+  S*: Key = SCANCODE_S
+  T*: Key = SCANCODE_T
+  U*: Key = SCANCODE_U
+  V*: Key = SCANCODE_V
+  W*: Key = SCANCODE_W
+  X*: Key = SCANCODE_X
+  Y*: Key = SCANCODE_Y
+  Z*: Key = SCANCODE_Z
+
+  Period*: Key = SCANCODE_PERIOD
+  Comma*: Key = SCANCODE_COMMA
+  Semicolon*: Key = SCANCODE_SEMICOLON
+  Apostrophe*: Key = SCANCODE_APOSTROPHE
+  LeftBracket*: Key = SCANCODE_LEFTBRACKET
+  RightBracket*: Key = SCANCODE_RIGHTBRACKET
+  Slash*: Key = SCANCODE_SLASH
+  Backslash*: Key = SCANCODE_BACKSLASH
+  Backtick*: Key = SCANCODE_GRAVE
+
+  Zero*: Key = SCANCODE_0
+  One*: Key = SCANCODE_1
+  Two*: Key = SCANCODE_2
+  Three*: Key = SCANCODE_3
+  Four*: Key = SCANCODE_4
+  Five*: Key = SCANCODE_5
+  Six*: Key = SCANCODE_6
+  Seven*: Key = SCANCODE_7
+  Eight*: Key = SCANCODE_8
+  Nine*: Key = SCANCODE_9
+  Minus*: Key = SCANCODE_MINUS
+  Equal*: Key = SCANCODE_EQUALS
+
+  NumpadZero*: Key = SCANCODE_KP_0
+  NumpadOne*: Key = SCANCODE_KP_1
+  NumpadTwo*: Key = SCANCODE_KP_2
+  NumpadThree*: Key = SCANCODE_KP_3
+  NumpadFour*: Key = SCANCODE_KP_4
+  NumpadFive*: Key = SCANCODE_KP_5
+  NumpadSix*: Key = SCANCODE_KP_6
+  NumpadSeven*: Key = SCANCODE_KP_7
+  NumpadEight*: Key = SCANCODE_KP_8
+  NumpadNine*: Key = SCANCODE_KP_9
+  NumLock*: Key = SCANCODE_NUMLOCKCLEAR
+  NumpadPeriod*: Key = SCANCODE_KP_PERIOD
+  NumpadEnter*: Key = SCANCODE_KP_ENTER
+  NumpadMinus*: Key = SCANCODE_KP_MINUS
+  NumpadPlus*: Key = SCANCODE_KP_PLUS
+  NumpadMultiply*: Key = SCANCODE_KP_MULTIPLY
+  NumpadDivide*: Key = SCANCODE_KP_DIVIDE
+
+  F1*: Key = SCANCODE_F1
+  F2*: Key = SCANCODE_F2
+  F3*: Key = SCANCODE_F3
+  F4*: Key = SCANCODE_F4
+  F5*: Key = SCANCODE_F5
+  F6*: Key = SCANCODE_F6
+  F7*: Key = SCANCODE_F7
+  F8*: Key = SCANCODE_F8
+  F9*: Key = SCANCODE_F9
+  F10*: Key = SCANCODE_F10
+  F11*: Key = SCANCODE_F11
+  F12*: Key = SCANCODE_F12
+
+  LeftCtrl*: Key = SCANCODE_LCTRL
+  RightCtrl*: Key = SCANCODE_RCTRL
+  LeftShift*: Key = SCANCODE_LSHIFT
+  RightShift*: Key = SCANCODE_RSHIFT
+  LeftAlt*: Key = SCANCODE_LALT
+  RightAlt*: Key = SCANCODE_RALT
+  LeftSuper*: Key = SCANCODE_LGUI
+  RightSuper*: Key = SCANCODE_RGUI
+
+  CapsLock*: Key = SCANCODE_CAPSLOCK
+  ScrollLock*: Key = SCANCODE_SCROLLLOCK
+  Tab*: Key = SCANCODE_TAB
+  Escape*: Key = SCANCODE_ESCAPE
+  Enter*: Key = SCANCODE_RETURN
+  Backspace*: Key = SCANCODE_BACKSPACE
+  Space*: Key = SCANCODE_SPACE
+  Delete*: Key = SCANCODE_DELETE
+  Pause*: Key = SCANCODE_PAUSE
+  Insert*: Key = SCANCODE_INSERT
+  PrintScreen*: Key = SCANCODE_PRINTSCREEN
+  Home*: Key = SCANCODE_HOME
+  End*: Key = SCANCODE_END
+  PageUp*: Key = SCANCODE_PAGEUP
+  PageDown*: Key = SCANCODE_PAGEDOWN
+  ContextMenu*: Key = SCANCODE_APPLICATION
