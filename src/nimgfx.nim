@@ -1,6 +1,8 @@
-import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math
+import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math, tables
 import nimgfx/[keys, vectors]
 export keys, vectors
+
+discard setHint(HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1")
 
 type 
   App = ref object
@@ -11,7 +13,7 @@ type
   Window* = ref object
     title*: string
     w*, h*: int32
-    flags*: WindowFlags = 0
+    flags*: WindowFlags = WINDOW_HIGH_PIXEL_DENSITY
     sdlWindow*: sdl3.Window = nil
 
   Renderer* = ref object
@@ -24,25 +26,27 @@ type
 
   Font* = sdl3_ttf.Font
 
-  Text* = ptr sdl3_ttf.Text
+  Text* = object
+    sdlText: ptr sdl3_ttf.Text
+    x*, y*: float32
 
   Event* = sdl3.Event
 
   Rect* = object
-    x*, y*: float = 0
-    w*, h*: float
+    x*, y*: float32 = 0
+    w*, h*: float32
     color*: Color
 
   Circle* = object
-    x*, y*: float = 0
-    radius*: float
+    x*, y*: float32 = 0
+    radius*: float32
 
   AudioPlayer* = Mixer
 
   Image* = object
     texture*: Texture
-    x*, y*: float = 0
-    w*, h*: float
+    x*, y*: float32 = 0
+    w*, h*: float32
   
   ScalingMode* = RendererLogicalPresentation
 
@@ -60,10 +64,9 @@ type
     mouseBackButtonMask = BUTTON_X1MASK
     mouseForwardButtonMask = BUTTON_X2MASK
 
-
   Button* = ref object
     text*: Text
-    w*, h*, x*, y*: float
+    w*, h*, x*, y*: float32 = 0
     color*: Color
     fromOutside: bool = false
 
@@ -94,6 +97,23 @@ const Yellow*: Color = Color(r: 255, g: 255, b: 0, a: 255)
 const Orange*: Color = Color(r: 255, g: 127, b: 0, a: 255)
 const Brown*: Color = Color(r: 139, g: 69, b: 19, a: 255)
 
+proc getMonitorPhysicalSize*(): tuple[w, h: int32] =
+  let monitor: ptr DisplayMode = getCurrentDisplayMode(getPrimaryDisplay())
+  if monitor != nil:
+    return ((monitor.w.cfloat * monitor.pixel_density).int32, (monitor.h.cfloat * monitor.pixel_density).int32)
+  else:
+    return (0, 0)
+
+proc getMonitorSize*(): tuple[w, h: int32] =
+  let monitor: ptr DisplayMode = getCurrentDisplayMode(getPrimaryDisplay())
+  if monitor != nil:
+    return (monitor.w, monitor.h)
+  else:
+    return (0, 0)
+
+proc scaleFactor*(window: Window): float32 =
+  return getDisplayContentScale(getDisplayForWindow(window.sdlWindow))
+
 proc create*(window: Window): void =
   window.sdlWindow = createWindow(window.title.cstring, window.w.int32, window.h.int32, window.flags)
 
@@ -119,13 +139,16 @@ proc getPosition*(window: Window): tuple[x, y: int32] =
   else:
     (0, 0)
 
+proc setTitle*(window: Window, title: string): void =
+  discard setWindowTitle(window.sdlWindow, title)
+
 proc setFullscreen*(window: Window, state: bool): void =
   discard setWindowFullscreen(window.sdlWindow, state)
 
 proc setResizable*(window: Window, state: bool): void =
   discard setWindowResizable(window.sdlWindow, state)
 
-proc setAspectRatio*(window: Window; min, max: float): void =
+proc setAspectRatio*(window: Window; min, max: float32): void =
   discard setWindowAspectRatio(window.sdlWindow, min, max)
 
 proc setLogicalPixels*(renderer: Renderer; w, h: int, mode: ScalingMode): void =
@@ -259,11 +282,11 @@ proc down*(button: MouseButton): bool =
     if (state and uint32(mouseForwardButtonMask)) != 0:
       return true
 
-proc getMousePosition*(renderer: Renderer): tuple[x, y: float] =
+proc getMousePosition*(renderer: Renderer): tuple[x, y: float32] =
   var x, y: cfloat
   discard getMouseState(x, y)
   discard renderCoordinatesFromWindow(renderer.sdlRenderer, x, y, x, y)
-  return (x.float, y.float)
+  return (x.float32, y.float32)
 
 proc createAudioPlayer*(): AudioPlayer =
   if sdl3_mixer.init():
@@ -286,26 +309,32 @@ proc playAudio*(audioPlayer: AudioPlayer, audio: Audio): void =
 proc stopAudio*(audioPlayer: AudioPlayer): void =
   discard sdl3_mixer.stopAllTracks(audioPlayer, 0)
 
-proc loadFont*(path: string, size: float): Font =
-  openFont(path, size)
+type FontKey = tuple[path: string, size: float32]
+var fontCache = initTable[FontKey, Font]()
+proc loadFont(path: string, size: float32): Font =
+  let cache: FontKey = (path, size)
+  if cache notin fontCache:
+    fontCache[cache] = openFont(path, size)
+  return fontCache[cache]
 
 proc kill*(font: Font): void =
   closeFont(font)
 
-proc createText*(renderer: Renderer, text: string, font: Font, color: Color): Text =
-  let tempText = createText(renderer.textEngine, font, text, 0)
+proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: float32, color: Color, x: float32 = 0, y: float32 = 0): Text =
+  let font: Font = loadFont(fontPath, fontSize)
+  let tempText: ptr sdl3_ttf.Text = createText(renderer.textEngine, font, text, 0)
   discard setTextColor(tempText, color.r, color.g, color.b, color.a)
-  return tempText
+  return Text(sdlText: tempText, x: x, y: y)
 
-proc drawText*(renderer: Renderer, text: Text; x, y: float32): void =
-  discard drawRendererText(text, x, y)
+proc drawText*(renderer: Renderer, text: Text;): void =
+  discard drawRendererText(text.sdlText, text.x, text.y)
 
 proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
   renderer.setDrawColor(color)
   discard renderDebugText(renderer.sdlRenderer, x, y, text)
   
 proc kill*(text: Text): void =
-  destroyText(text)
+  destroyText(text.sdlText)
 
 proc loadImage*(renderer: Renderer, image: string): Image =
   let texture = loadTexture(renderer.sdlRenderer, image.cstring)
@@ -324,7 +353,7 @@ proc drawImage*(renderer: Renderer, image: Image): void =
   dstrect.h = image.h
   discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)
 
-proc inside*(pos: tuple[x, y: float], button: Button): bool =
+proc inside*(pos: tuple[x, y: float32], button: Button): bool =
   if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
     return true
   else:
@@ -375,7 +404,13 @@ proc drawButton*(renderer: Renderer, button: Button): void =
     borderColor = Color(r: 77, g: 80, b: 83, a: 255)
   renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: color))
   renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: borderColor))
-  renderer.drawText(button.text, button.x, button.y)
+  button.text.x = button.x
+  button.text.y = button.y
+  renderer.drawText(button.text)
+
+proc drawButtons*(renderer: Renderer, buttons: openArray[Button]): void =
+  for button in buttons:
+    renderer.drawButton(button)
 
 proc getTicksMS*(): uint64 =
   sdl3.getTicks()

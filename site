@@ -1,0 +1,4 @@
+page(title: "idghuigiuin")
+button(text: "play", w: 70, h: 50, x: 50)
+button(text: "pause", w: 25vw, h: 200, x: 25vw, y: 100)
+h1(text: "hello Wor", x: 500, y: 500)

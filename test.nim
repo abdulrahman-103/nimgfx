@@ -2,7 +2,6 @@ import src/nimgfx
 
 var window: Window = Window(title: "test", w: 500, h: 500)
 window.create()
-window.setFullscreen(true)
 
 var renderer: Renderer = Renderer(window: window)
 renderer.create()
