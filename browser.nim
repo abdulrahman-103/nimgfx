@@ -1,5 +1,5 @@
 import src/nimgfx
-import strutils, sequtils
+import strutils, sequtils, asyncnet, asyncdispatch
 discard initVideo()
 let monitorSize: tuple[w: int32, h: int32] = getMonitorSize()
 var window: Window = Window(title: "Browser", w: monitorSize.w div 2, h: monitorSize.h div 2)
@@ -89,12 +89,13 @@ parseWebContent("site")
 window.setTitle(window.title & " | " & pageTitle)
 
 while running:
-  parseWebContent("site")
   var event: Event
   while pollEvent(event):
     case event.type
     of QuitEvent:
       running = false
+    of WindowResizeEvent:
+      parseWebContent("site")
     else:
       discard
 

@@ -83,6 +83,7 @@ const
   KeyUpEvent*: EventType = EVENT_KEY_UP
   MouseButtonDownEvent*: EventType = EVENT_MOUSE_BUTTON_DOWN
   MouseButtonUpEvent*: EventType = EVENT_MOUSE_BUTTON_UP
+  WindowResizeEvent*: EventType = EVENT_WINDOW_RESIZED
 
 
 const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
