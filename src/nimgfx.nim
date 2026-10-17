@@ -97,18 +97,42 @@ const Yellow*: Color = Color(r: 255, g: 255, b: 0, a: 255)
 const Orange*: Color = Color(r: 255, g: 127, b: 0, a: 255)
 const Brown*: Color = Color(r: 139, g: 69, b: 19, a: 255)
 
-proc getMonitorPhysicalSize*(): tuple[w, h: int32] =
-  let monitor: ptr DisplayMode = getCurrentDisplayMode(getPrimaryDisplay())
-  if monitor != nil:
-    return ((monitor.w.cfloat * monitor.pixel_density).int32, (monitor.h.cfloat * monitor.pixel_density).int32)
+proc initVideo*(): bool =
+  sdl3.init(INIT_VIDEO)
+
+proc initAudio*(): bool =
+  if sdl3.init(INIT_AUDIO):
+    return sdl3_mixer.init()
   else:
-    return (0, 0)
+    return false
+
+proc initJoystick*(): bool =
+  sdl3.init(INIT_JOYSTICK)
+
+proc initHaptic*(): bool =
+  sdl3.init(INIT_HAPTIC)
+
+proc initGamepad*(): bool =
+  sdl3.init(INIT_GAMEPAD)
+
+proc initEvents*(): bool =
+  sdl3.init(INIT_EVENTS)
+
+proc initSensor*(): bool =
+  sdl3.init(INIT_SENSOR)
+
+proc initCamera*(): bool =
+  sdl3.init(INIT_CAMERA)
+
+proc initText*(): bool =
+  sdl3_ttf.init()
 
 proc getMonitorSize*(): tuple[w, h: int32] =
   let monitor: ptr DisplayMode = getCurrentDisplayMode(getPrimaryDisplay())
   if monitor != nil:
     return (monitor.w, monitor.h)
   else:
+    echo "SDL Error: ", getError() 
     return (0, 0)
 
 proc scaleFactor*(window: Window): float32 =
@@ -144,6 +168,12 @@ proc setTitle*(window: Window, title: string): void =
 
 proc setFullscreen*(window: Window, state: bool): void =
   discard setWindowFullscreen(window.sdlWindow, state)
+
+proc maximize*(window: Window): void =
+  discard maximizeWindow(window.sdlWindow)
+
+proc minimize*(window: Window): void =
+  discard minimizeWindow(window.sdlWindow)
 
 proc setResizable*(window: Window, state: bool): void =
   discard setWindowResizable(window.sdlWindow, state)

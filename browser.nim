@@ -1,11 +1,14 @@
 import src/nimgfx
 import strutils, sequtils
-
-var window: Window = Window(title: "test", w: 1000, h: 950)
+discard initVideo()
+let monitorSize: tuple[w: int32, h: int32] = getMonitorSize()
+var window: Window = Window(title: "Browser", w: monitorSize.w div 2, h: monitorSize.h div 2)
 window.create()
 var renderer: Renderer = Renderer(window: window)
 renderer.create()
 renderer.setVSync(true)
+window.setResizable(true)
+window.maximize()
 
 var running: bool = true
   
@@ -81,10 +84,9 @@ proc parseWebContent(fileName: string): void =
         h = words[words.find("h") + 1].convertSize(window)
       let button = Button(x: x, y: y, w: w, h: h, text: text)
       buttons.add(button)
-    
 
+parseWebContent("site")
 window.setTitle(window.title & " | " & pageTitle)
-window.setResizable(true)
 
 while running:
   parseWebContent("site")
@@ -95,7 +97,6 @@ while running:
       running = false
     else:
       discard
-    echo window.getSize()
 
   renderer.clear(Black)
   renderer.drawButtons(buttons)
