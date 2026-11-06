@@ -1,168 +1,356 @@
-import math
+import std/math
 
-type Vector2* = object
-  x*, y*: float32
+type Vector2*[T: SomeNumber] = object
+  x*, y*: T
 
-proc normalize*(v: var Vector2) =
-  let length = sqrt(v.x * v.x + v.y * v.y)
+## negation
+proc `-`*[T: SomeNumber](v: Vector2[T]): Vector2[T] =
+  Vector2[T](x: -v.x, y: -v.y)
+
+## addition
+proc `+`*[T: SomeNumber](v1, v2: Vector2[T]): Vector2[T] =
+  Vector2[T](x: v1.x + v2.x, y: v1.y + v2.y)
+
+proc `+=`*[T: SomeNumber](v1: var Vector2[T], v2: Vector2[T]) =
+  v1.x += v2.x
+  v1.y += v2.y
+
+## subtraction
+proc `-`*[T: SomeNumber](v1, v2: Vector2[T]): Vector2[T] =
+  Vector2[T](x: v1.x - v2.x, y: v1.y - v2.y)
+
+proc `-=`*[T: SomeNumber](v1: var Vector2[T], v2: Vector2[T]) =
+  v1.x -= v2.x
+  v1.y -= v2.y
+
+## multiplication
+proc `*`*[T: SomeNumber](v: Vector2[T], s: T): Vector2[T] =
+  Vector2[T](x: v.x * s, y: v.y * s)
+
+proc `*`*[T: SomeNumber](s: T, v: Vector2[T]): Vector2[T] =
+  v * s
+
+proc `*`*[T: SomeNumber](v1, v2: Vector2[T]): Vector2[T] =
+  Vector2[T](x: v1.x * v2.x, y: v1.y * v2.y)
+
+proc `*=`*[T: SomeNumber](v: var Vector2[T], s: T) =
+  v.x *= s
+  v.y *= s
+
+proc `*=`*[T: SomeNumber](v1: var Vector2[T], v2: Vector2[T]) =
+  v1.x *= v2.x
+  v1.y *= v2.y
+
+## division
+proc `div`*[T: SomeInteger](v: Vector2[T], s: T): Vector2[T] =
+  Vector2[T](x: v.x div s, y: v.y div s)
+
+proc `div`*[T: SomeInteger](v1, v2: Vector2[T]): Vector2[T] =
+  Vector2[T](x: v1.x div v2.x, y: v1.y div v2.y)
+
+proc `/`*[T: SomeFloat](v: Vector2[T], s: T): Vector2[T] =
+  Vector2[T](x: v.x / s, y: v.y / s)
+
+proc `/`*[T: SomeFloat](v1, v2: Vector2[T]): Vector2[T] =
+  Vector2[T](x: v1.x / v2.x, y: v1.y / v2.y)
+
+proc `/=`*[T: SomeFloat](v: var Vector2[T], s: T) =
+  v.x /= s
+  v.y /= s
+
+proc `/=`*[T: SomeFloat](v1: var Vector2[T], v2: Vector2[T]) =
+  v1.x /= v2.x
+  v1.y /= v2.y
+
+## Pythagorean theorem
+proc length*[T: SomeFloat](v: Vector2[T]): T =
+  sqrt(v.x * v.x + v.y * v.y)
+
+proc length*[T: SomeInteger](v: Vector2[T]): float =
+  sqrt(float(v.x) * float(v.x) + float(v.y) * float(v.y))
+
+## Length but no sqrt
+proc lengthSquared*[T: SomeNumber](v: Vector2[T]): T =
+  v.x * v.x + v.y * v.y
+
+## Normalizes the vector
+proc normalize*[T: SomeFloat](v: var Vector2[T]) =
+  let length = v.length()
   if length != 0:
     v.x /= length
     v.y /= length
 
-proc normalized*(v: Vector2): Vector2 =
+## Returns a normalized vector
+proc normalized*[T: SomeFloat](v: Vector2[T]): Vector2[T] =
   result = v
   result.normalize()
 
+## Dot product
+proc dot*[T: SomeNumber](v1, v2: Vector2[T]): T =
+  v1.x * v2.x + v1.y * v2.y
 
-proc zero*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: 0, y: 0)
+## Cross product
+proc cross*[T: SomeNumber](v1, v2: Vector2[T]): T =
+  v1.x * v2.y - v1.y * v2.x
 
-proc one*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: 1, y: 1)
+## Distance between two vectors
+proc distance*[T: SomeFloat](v1, v2: Vector2[T]): T =
+  (v1 - v2).length()
 
-proc right*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: 1, y: 0)
+proc distance*[T: SomeInteger](v1, v2: Vector2[T]): float =
+  (v1 - v2).length()
 
-proc left*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: -1, y: 0)
+## Distance but uses lengthSquared instead of length
+proc distanceSquared*[T: SomeNumber](v1, v2: Vector2[T]): T =
+  (v1 - v2).lengthSquared()
 
-proc up*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: 0, y: -1)
+## Vector2[T](x: 0, y: 0)
+proc zero*[T: SomeNumber](_: typedesc[Vector2[T]]): Vector2[T] =
+  Vector2[T](x: 0, y: 0)
 
-proc down*(T: typedesc[Vector2]): Vector2 =
-  Vector2(x: 0, y: 1)
-
-# negate
-proc `-`*(v: Vector2): Vector2 =
-  Vector2(x: -v.x, y: -v.y)
-
-# addition
-proc `+`*(a, b: Vector2): Vector2 =
-  Vector2(x: a.x + b.x, y: a.y + b.y)
-
-proc `+=`*(a: var Vector2, b: Vector2) =
-  a.x += b.x
-  a.y += b.y
+## Vector2[T](x: 1, y: 1)
+proc one*[T: SomeNumber](_: typedesc[Vector2[T]]): Vector2[T] =
+  Vector2[T](x: 1, y: 1)
 
 
-# subtraction
-proc `-`*(a, b: Vector2): Vector2 =
-  Vector2(x: a.x - b.x, y: a.y - b.y)
+type Vector3*[T: SomeNumber] = object
+  x*, y*, z*: T
 
-proc `-=`*(a: var Vector2, b: Vector2) =
-  a.x -= b.x
-  a.y -= b.y
+## negation
+proc `-`*[T: SomeNumber](v: Vector3[T]): Vector3[T] =
+  Vector3[T](x: -v.x, y: -v.y, z: -v.z)
+
+## addition
+proc `+`*[T: SomeNumber](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z)
+
+proc `+=`*[T: SomeNumber](v1: var Vector3[T], v2: Vector3[T]) =
+  v1.x += v2.x
+  v1.y += v2.y
+  v1.z += v2.z
+
+## subtraction
+proc `-`*[T: SomeNumber](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z)
+
+proc `-=`*[T: SomeNumber](v1: var Vector3[T], v2: Vector3[T]) =
+  v1.x -= v2.x
+  v1.y -= v2.y
+  v1.z -= v2.z
+
+## multiplication
+proc `*`*[T: SomeNumber](v: Vector3[T], s: T): Vector3[T] =
+  Vector3[T](x: v.x * s, y: v.y * s, z: v.z * s)
+
+proc `*`*[T: SomeNumber](s: T, v: Vector3[T]): Vector3[T] =
+  v * s
+
+proc `*`*[T: SomeNumber](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.x * v2.x, y: v1.y * v2.y, z: v1.z * v2.z)
+
+proc `*=`*[T: SomeNumber](v: var Vector3[T], s: T) =
+  v.x *= s
+  v.y *= s
+  v.z *= s
+
+proc `*=`*[T: SomeNumber](v1: var Vector3[T], v2: Vector3[T]) =
+  v1.x *= v2.x
+  v1.y *= v2.y
+  v1.z *= v2.z
+
+## division
+proc `div`*[T: SomeInteger](v: Vector3[T], s: T): Vector3[T] =
+  Vector3[T](x: v.x div s, y: v.y div s, z: v.z div s)
+
+proc `div`*[T: SomeInteger](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.x div v2.x, y: v1.y div v2.y, z: v1.z div v2.z)
+
+proc `/`*[T: SomeFloat](v: Vector3[T], s: T): Vector3[T] =
+  Vector3[T](x: v.x / s, y: v.y / s, z: v.z / s)
+
+proc `/`*[T: SomeFloat](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.x / v2.x, y: v1.y / v2.y, z: v1.z / v2.z)
+
+proc `/=`*[T: SomeFloat](v: var Vector3[T], s: T) =
+  v.x /= s
+  v.y /= s
+  v.z /= s
+
+proc `/=`*[T: SomeFloat](v1: var Vector3[T], v2: Vector3[T]) =
+  v1.x /= v2.x
+  v1.y /= v2.y
+  v1.z /= v2.z
+
+## Pythagorean theorem
+proc length*[T: SomeFloat](v: Vector3[T]): T =
+  sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
+
+proc length*[T: SomeInteger](v: Vector3[T]): float =
+  sqrt(float(v.x) * float(v.x) + float(v.y) * float(v.y) + float(v.z) * float(v.z))
+
+## Length but no sqrt
+proc lengthSquared*[T: SomeNumber](v: Vector3[T]): T =
+  v.x * v.x + v.y * v.y + v.z * v.z
+
+## Normalizes the vector
+proc normalize*[T: SomeFloat](v: var Vector3[T]) =
+  let length = v.length()
+  if length != 0:
+    v.x /= length
+    v.y /= length
+    v.z /= length
+
+## Returns a normalized vector
+proc normalized*[T: SomeFloat](v: Vector3[T]): Vector3[T] =
+  result = v
+  result.normalize()
+
+## Dot product
+proc dot*[T: SomeNumber](v1, v2: Vector3[T]): T =
+  v1.x * v2.x + v1.y * v2.y + v1.z * v2.z
+
+## Cross product
+proc cross*[T: SomeNumber](v1, v2: Vector3[T]): Vector3[T] =
+  Vector3[T](x: v1.y * v2.z - v1.z * v2.y, y: v1.z * v2.x - v1.x * v2.z, z: v1.x * v2.y - v1.y * v2.x)
+
+## Distance between two vectors
+proc distance*[T: SomeFloat](v1, v2: Vector3[T]): T =
+  (v1 - v2).length()
+
+proc distance*[T: SomeInteger](v1, v2: Vector3[T]): float =
+  (v1 - v2).length()
+
+## Distance but uses lengthSquared instead of length
+proc distanceSquared*[T: SomeNumber](v1, v2: Vector3[T]): T =
+  (v1 - v2).lengthSquared()
+
+## Vector3[T](x: 0, y: 0, z: 0)
+proc zero*[T: SomeNumber](_: typedesc[Vector3[T]]): Vector3[T] =
+  Vector3[T](x: 0, y: 0, z: 0)
+
+## Vector3[T](x: 1, y: 1, z: 1)
+proc one*[T: SomeNumber](_: typedesc[Vector3[T]]): Vector3[T] =
+  Vector3[T](x: 1, y: 1, z: 1)
 
 
-# multiplication
-proc `*`*(v: Vector2, f: float32): Vector2 =
-  Vector2(x: v.x * f, y: v.y * f)
+type Vector4*[T: SomeNumber] = object
+  x*, y*, z*, w*: T
 
-proc `*`*(f: float32, v: Vector2): Vector2 =
-  v * f
+## negation
+proc `-`*[T: SomeNumber](v: Vector4[T]): Vector4[T] =
+  Vector4[T](x: -v.x, y: -v.y, z: -v.z, w: -v.w)
 
-proc `*`*(i: int, v: Vector2): Vector2 =
-  v * float32(i)
+## addition
+proc `+`*[T: SomeNumber](v1, v2: Vector4[T]): Vector4[T] =
+  Vector4[T](x: v1.x + v2.x, y: v1.y + v2.y, z: v1.z + v2.z, w: v1.w + v2.w)
 
-proc `*`*(v: Vector2, i: int): Vector2 =
-  v * float32(i)
+proc `+=`*[T: SomeNumber](v1: var Vector4[T], v2: Vector4[T]) =
+  v1.x += v2.x
+  v1.y += v2.y
+  v1.z += v2.z
+  v1.w += v2.w
 
-proc `*`*(a, b: Vector2): Vector2 =
-  Vector2(x: a.x * b.x, y: a.y * b.y)
+## subtraction
+proc `-`*[T: SomeNumber](v1, v2: Vector4[T]): Vector4[T] =
+  Vector4[T](x: v1.x - v2.x, y: v1.y - v2.y, z: v1.z - v2.z, w: v1.w - v2.w)
 
-proc `*=`*(v: var Vector2, f: float32) =
-  v.x *= f
-  v.y *= f
+proc `-=`*[T: SomeNumber](v1: var Vector4[T], v2: Vector4[T]) =
+  v1.x -= v2.x
+  v1.y -= v2.y
+  v1.z -= v2.z
+  v1.w -= v2.w
 
-proc `*=`*(v: var Vector2, i: int) =
-  v *= float32(i)
+## multiplication
+proc `*`*[T: SomeNumber](v: Vector4[T], s: T): Vector4[T] =
+  Vector4[T](x: v.x * s, y: v.y * s, z: v.z * s, w: v.w * s)
 
-proc `*=`*(a: var Vector2, b: Vector2) =
-  a.x *= b.x
-  a.y *= b.y
+proc `*`*[T: SomeNumber](s: T, v: Vector4[T]): Vector4[T] =
+  v * s
 
-# division
-proc `/`*(v: Vector2, f: float32): Vector2 =
-  Vector2(x: v.x / f, y: v.y / f)
+proc `*`*[T: SomeNumber](v1, v2: Vector4[T]): Vector4[T] =
+  Vector4[T](x: v1.x * v2.x, y: v1.y * v2.y, z: v1.z * v2.z, w: v1.w * v2.w)
 
-proc `/`*(a, b: Vector2): Vector2 =
-  Vector2(x: a.x / b.x, y: a.y / b.y)
+proc `*=`*[T: SomeNumber](v: var Vector4[T], s: T) =
+  v.x *= s
+  v.y *= s
+  v.z *= s
+  v.w *= s
 
-proc `/=`*(v: var Vector2, f: float32) =
-  v.x /= f
-  v.y /= f
+proc `*=`*[T: SomeNumber](v1: var Vector4[T], v2: Vector4[T]) =
+  v1.x *= v2.x
+  v1.y *= v2.y
+  v1.z *= v2.z
+  v1.w *= v2.w
 
-proc `/=`*(a: var Vector2, b: Vector2) =
-  a.x /= b.x
-  a.y /= b.y
+## division
+proc `div`*[T: SomeInteger](v: Vector4[T], s: T): Vector4[T] =
+  Vector4[T](x: v.x div s, y: v.y div s, z: v.z div s, w: v.w div s)
 
+proc `div`*[T: SomeInteger](v1, v2: Vector4[T]): Vector4[T] =
+  Vector4[T](x: v1.x div v2.x, y: v1.y div v2.y, z: v1.z div v2.z, w: v1.w div v2.w)
 
+proc `/`*[T: SomeFloat](v: Vector4[T], s: T): Vector4[T] =
+  Vector4[T](x: v.x / s, y: v.y / s, z: v.z / s, w: v.w / s)
 
+proc `/`*[T: SomeFloat](v1, v2: Vector4[T]): Vector4[T] =
+  Vector4[T](x: v1.x / v2.x, y: v1.y / v2.y, z: v1.z / v2.z, w: v1.w / v2.w)
 
-type Vector2i* = object
-  x*, y*: int32
+proc `/=`*[T: SomeFloat](v: var Vector4[T], s: T) =
+  v.x /= s
+  v.y /= s
+  v.z /= s
+  v.w /= s
 
-proc zero*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: 0, y: 0)
+proc `/=`*[T: SomeFloat](v1: var Vector4[T], v2: Vector4[T]) =
+  v1.x /= v2.x
+  v1.y /= v2.y
+  v1.z /= v2.z
+  v1.w /= v2.w
 
-proc one*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: 1, y: 1)
+## Pythagorean theorem
+proc length*[T: SomeFloat](v: Vector4[T]): T =
+  sqrt(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w)
 
-proc right*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: 1, y: 0)
+proc length*[T: SomeInteger](v: Vector4[T]): float =
+  sqrt(float(v.x) * float(v.x) + float(v.y) * float(v.y) + float(v.z) * float(v.z) + float(v.w) * float(v.w))
 
-proc left*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: -1, y: 0)
+## Length but no sqrt
+proc lengthSquared*[T: SomeNumber](v: Vector4[T]): T =
+  v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w
 
-proc up*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: 0, y: -1)
+## Normalizes the vector
+proc normalize*[T: SomeFloat](v: var Vector4[T]) =
+  let length = v.length()
+  if length != 0:
+    v.x /= length
+    v.y /= length
+    v.z /= length
+    v.w /= length
 
-proc down*(T: typedesc[Vector2i]): Vector2i =
-  Vector2i(x: 0, y: 1)
+## Returns a normalized vector
+proc normalized*[T: SomeFloat](v: Vector4[T]): Vector4[T] =
+  result = v
+  result.normalize()
 
-# negate
-proc `-`*(v: Vector2i): Vector2i =
-  Vector2i(x: -v.x, y: -v.y)
+## Dot product
+proc dot*[T: SomeNumber](v1, v2: Vector4[T]): T =
+  v1.x * v2.x + v1.y * v2.y + v1.z * v2.z + v1.w * v2.w
 
-# addition
-proc `+`*(a, b: Vector2i): Vector2i =
-  Vector2i(x: a.x + b.x, y: a.y + b.y)
+## Distance between two vectors
+proc distance*[T: SomeFloat](v1, v2: Vector4[T]): T =
+  (v1 - v2).length()
 
-proc `+=`*(a: var Vector2i, b: Vector2i) =
-  a.x += b.x
-  a.y += b.y
+proc distance*[T: SomeInteger](v1, v2: Vector4[T]): float =
+  (v1 - v2).length()
 
+## Distance but uses lengthSquared instead of length
+proc distanceSquared*[T: SomeNumber](v1, v2: Vector4[T]): T =
+  (v1 - v2).lengthSquared()
 
-# subtraction
-proc `-`*(a, b: Vector2i): Vector2i =
-  Vector2i(x: a.x - b.x, y: a.y - b.y)
+## Vector4[T](x: 0, y: 0, z: 0, w: 0)
+proc zero*[T: SomeNumber](_: typedesc[Vector4[T]]): Vector4[T] =
+  Vector4[T](x: 0, y: 0, z: 0, w: 0)
 
-proc `-=`*(a: var Vector2i, b: Vector2i) =
-  a.x -= b.x
-  a.y -= b.y
-
-
-# multiplication
-proc `*`*(v: Vector2i, i: int32): Vector2i =
-  Vector2i(x: v.x * i, y: v.y * i)
-
-proc `*`*(i: int32, v: Vector2i): Vector2i =
-  v * i
-
-proc `*`*(a, b: Vector2i): Vector2i =
-  Vector2i(x: a.x * b.x, y: a.y * b.y)
-
-proc `*=`*(v: var Vector2i, i: int32) =
-  v.x *= i
-  v.y *= i
-
-proc `*=`*(a: var Vector2i, b: Vector2i) =
-  a.x *= b.x
-  a.y *= b.y
-
-# division
-proc `div`*(v: Vector2i, f: int32): Vector2i =
-  Vector2i(x: v.x div f, y: v.y div f)
-
-proc `div`*(a, b: Vector2i): Vector2i =
-  Vector2i(x: a.x div b.x, y: a.y div b.y)
+## Vector4[T](x: 1, y: 1, z: 1, w: 1)
+proc one*[T: SomeNumber](_: typedesc[Vector4[T]]): Vector4[T] =
+  Vector4[T](x: 1, y: 1, z: 1, w: 1)

@@ -1,5 +1,4 @@
-import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math, tables
-import nimgfx/[keys, vectors]
+import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math, tables, nimgfx/[keys, vectors]
 export keys, vectors
 
 discard setHint(HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1")
@@ -36,6 +35,7 @@ type
     x*, y*: float32 = 0
     w*, h*: float32
     color*: Color
+    fromOutside: bool = false
 
   Circle* = object
     x*, y*: float32 = 0
@@ -66,8 +66,19 @@ type
 
   Button* = ref object
     text*: Text
+    rect*: Rect
+    color*: Color = Color(r: 49, g: 54, b: 59, a: 255)
+    downColor*: Color = Color(r: 47, g: 83, b: 104, a: 255)
+    borderColor*: Color = Color(r: 77, g: 80, b: 83, a: 255)
+    borderHoverColor*: Color = Color(r: 61, g: 174, b: 233, a: 255)
+
+  TextEdit* = ref object
+    text*: Text
     w*, h*, x*, y*: float32 = 0
-    color*: Color
+    color*: Color = Color(r: 49, g: 54, b: 59, a: 255)
+    downColor*: Color = Color(r: 47, g: 83, b: 104, a: 255)
+    borderColor*: Color = Color(r: 77, g: 80, b: 83, a: 255)
+    borderHoverColor*: Color = Color(r: 61, g: 174, b: 233, a: 255)
     fromOutside: bool = false
 
 const
@@ -202,21 +213,21 @@ proc clear*(renderer: Renderer, color: Color): void =
   renderer.setDrawColor(color)
   discard renderClear(renderer.sdlRenderer)
 
-proc drawPoint*(renderer: Renderer, point: Vector2, color: Color): void =
+proc drawPoint*(renderer: Renderer, point: Vector2[float32], color: Color): void =
   renderer.setDrawColor(color)
   discard renderPoint(renderer.sdlRenderer, point.x, point.y)
 
-proc drawPoints*(renderer: Renderer, points: openArray[Vector2], color: Color): void =
+proc drawPoints*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
   if points.len == 0: return
   renderer.setDrawColor(color)
   let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
   discard renderPoints(renderer.sdlRenderer, toOpenArray(pointsPtr, points.low, points.high))
 
-proc drawLine*(renderer: Renderer, point1: Vector2, point2: Vector2, color: Color): void =
+proc drawLine*(renderer: Renderer, point1: Vector2[float32], point2: Vector2[float32], color: Color): void =
   renderer.setDrawColor(color)
   discard renderLine(renderer.sdlRenderer, point1.x, point1.y, point2.x, point2.y)
 
-proc drawLines*(renderer: Renderer, points: openArray[Vector2], color: Color): void =
+proc drawLines*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
   if points.len == 0: return
   renderer.setDrawColor(color)
   let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
@@ -232,12 +243,12 @@ proc drawRects*(renderer: Renderer, rects: openArray[Rect]): void =
     drawRect(renderer, rect)
 
 proc drawHollowRect*(renderer: Renderer, rect: Rect): void =
-  renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], rect.color)
+  renderer.drawLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], rect.color)
 
 proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect]): void =
   if rects.len == 0: return
   for rect in rects:
-    renderer.drawLines([Vector2(x: rect.x, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y), Vector2(x: rect.x + rect.w, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y + rect.h), Vector2(x: rect.x, y: rect.y)], rect.color)
+    renderer.drawLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], rect.color)
 
 proc drawCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
   var vertices = newSeq[Vertex](segments + 1)
@@ -294,7 +305,7 @@ proc released*(event: Event, button: MouseButton): bool =
     return MouseButton(event.button.button) == button
 
 proc down*(button: MouseButton): bool =
-  var x, y: cfloat
+  var x, y: float32
   let state = getMouseState(x, y)
   case button:
   of mouseLeftButton:
@@ -314,7 +325,7 @@ proc down*(button: MouseButton): bool =
       return true
 
 proc getMousePosition*(renderer: Renderer): tuple[x, y: float32] =
-  var x, y: cfloat
+  var x, y: float32
   discard getMouseState(x, y)
   discard renderCoordinatesFromWindow(renderer.sdlRenderer, x, y, x, y)
   return (x.float32, y.float32)
@@ -360,6 +371,10 @@ proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: f
 proc drawText*(renderer: Renderer, text: Text;): void =
   discard drawRendererText(text.sdlText, text.x, text.y)
 
+proc drawTexts*(renderer: Renderer, texts: openArray[Text];): void =
+  for text in texts:
+    discard drawRendererText(text.sdlText, text.x, text.y)
+
 proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
   renderer.setDrawColor(color)
   discard renderDebugText(renderer.sdlRenderer, x, y, text)
@@ -372,7 +387,7 @@ proc loadImage*(renderer: Renderer, image: string): Image =
   if texture == nil:
     echo "Couldn't load image"
     sdl3.quit()
-  var w, h: cfloat
+  var w, h: float32
   discard getTextureSize(texture, w, h)
   return Image(texture: texture, w: w, h: h)
 
@@ -384,33 +399,33 @@ proc drawImage*(renderer: Renderer, image: Image): void =
   dstrect.h = image.h
   discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)
 
-proc inside*(pos: tuple[x, y: float32], button: Button): bool =
-  if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+proc inside*(pos: tuple[x, y: float32], rect: Rect): bool =
+  if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
     return true
   else:
     return false
 
-proc hovered*(button: Button, renderer: Renderer): bool =
+proc hovered*(rect: Rect, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
-  if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+  if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
     return true
   else:
     return false
 
-proc down*(button: Button, renderer: Renderer): bool =
+proc down*(rect: Rect, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
-  if down(mouseLeftButton) and not button.fromOutside:
-    if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+  if down(mouseLeftButton) and not rect.fromOutside:
+    if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
       return true
     else:
       return false
   else:
     return false
 
-proc pressed*(event: Event, button: Button, renderer: Renderer): bool =
+proc pressed*(event: Event, rect: Rect, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
   if event.pressed(mouseLeftButton):
-    if pos.x >= button.x and pos.x <= button.x + button.w and pos.y >= button.y and pos.y <= button.y + button.h:
+    if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
       return true
     else:
       return false
@@ -419,24 +434,24 @@ proc pressed*(event: Event, button: Button, renderer: Renderer): bool =
 
 proc drawButton*(renderer: Renderer, button: Button): void =
   let mousePos = renderer.getMousePosition()
-  if not mousePos.inside(button) and mouseLeftButton.down():
-    button.fromOutside = true
+  if not mousePos.inside(button.rect) and mouseLeftButton.down():
+    button.rect.fromOutside = true
   if not mouseLeftButton.down():
-    button.fromOutside = false
+    button.rect.fromOutside = false
   var color: Color
-  if down(button, renderer):
-    color = Color(r: 47, g: 83, b: 104, a: 255)
+  if down(button.rect, renderer):
+    button.rect.color = button.downColor
   else:
-    color = Color(r: 49, g: 54, b: 59, a: 255)
+    button.rect.color = button.color
   var borderColor: Color
-  if button.hovered(renderer):
-    borderColor = Color(r: 61, g: 174, b: 233, a: 255)
+  if hovered(button.rect, renderer):
+    borderColor = button.borderHoverColor
   else:
-    borderColor = Color(r: 77, g: 80, b: 83, a: 255)
-  renderer.drawRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: color))
-  renderer.drawHollowRect(Rect(x: button.x, y: button.y, w: button.w, h: button.h, color: borderColor))
-  button.text.x = button.x
-  button.text.y = button.y
+    borderColor = button.borderColor
+  renderer.drawRect(button.rect)
+  renderer.drawHollowRect(Rect(x: button.rect.x, y: button.rect.y, w: button.rect.w, h: button.rect.h, color: borderColor))
+  button.text.x = button.rect.x
+  button.text.y = button.rect.y
   renderer.drawText(button.text)
 
 proc drawButtons*(renderer: Renderer, buttons: openArray[Button]): void =
