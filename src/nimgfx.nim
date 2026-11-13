@@ -1,17 +1,11 @@
-import sdl3/[sdl3, sdl3_ttf, sdl3_image, sdl3_mixer], math, tables, nimgfx/[keys, vectors]
+import sdl3, sdl3_ttf, sdl3_image, sdl3_mixer, math, tables, nimgfx/[keys, vectors]
 export keys, vectors
 
 discard setHint(HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1")
 
 type 
-  App = ref object
-    window: Window
-    renderer: Renderer
-    running: bool
-
   Window* = ref object
     title*: string
-    w*, h*: int32
     flags*: WindowFlags = WINDOW_HIGH_PIXEL_DENSITY
     sdlWindow*: sdl3.Window = nil
 
@@ -34,12 +28,17 @@ type
   Rect* = object
     x*, y*: float32 = 0
     w*, h*: float32
-    color*: Color
     fromOutside: bool = false
 
   Circle* = object
     x*, y*: float32 = 0
     radius*: float32
+
+  Point* = FPoint
+
+  Pixel* = object
+    x*, y*: float32
+    color*: Color
 
   AudioPlayer* = Mixer
 
@@ -47,8 +46,6 @@ type
     texture*: Texture
     x*, y*: float32 = 0
     w*, h*: float32
-  
-  ScalingMode* = RendererLogicalPresentation
 
   MouseButton* = enum
     mouseLeftButton = BUTTON_LEFT
@@ -57,12 +54,14 @@ type
     mouseBackButton = BUTTON_X1
     mouseForwardButton = BUTTON_X2
 
-  MouseButtonMask = enum
+  MouseButtonMask* = enum
     mouseLeftButtonMask = BUTTON_LMASK
     mouseMiddleButtonMask = BUTTON_MMASK
     mouseRightButtonMask = BUTTON_RMASK
     mouseBackButtonMask = BUTTON_X1MASK
     mouseForwardButtonMask = BUTTON_X2MASK
+
+  Texture* = sdl3.Texture
 
   Button* = ref object
     text*: Text
@@ -81,12 +80,28 @@ type
     borderHoverColor*: Color = Color(r: 61, g: 174, b: 233, a: 255)
     fromOutside: bool = false
 
+type 
+  TextureAccess* = sdl3.TextureAccess
+const  
+  TextureAccessStatic*: TextureAccess = TEXTUREACCESS_STATIC
+  TextureAccessStreaming*: TextureAccess = TEXTUREACCESS_STREAMING
+  TextureAccessTarget*: TextureAccess = TEXTUREACCESS_TARGET
+
+type
+  RendererScaleMode* = RendererLogicalPresentation
 const
-  NoScaling* = LOGICAL_PRESENTATION_DISABLED
-  StretchScaling* = LOGICAL_PRESENTATION_STRETCH
-  LetterboxScaling* = LOGICAL_PRESENTATION_LETTERBOX
-  OverscanScaling* = LOGICAL_PRESENTATION_OVERSCAN
-  IntegerScaling* = LOGICAL_PRESENTATION_INTEGER_SCALE
+  NoScaling*: RendererLogicalPresentation = LOGICAL_PRESENTATION_DISABLED
+  StretchScaling*: RendererLogicalPresentation = LOGICAL_PRESENTATION_STRETCH
+  LetterboxScaling*: RendererLogicalPresentation = LOGICAL_PRESENTATION_LETTERBOX
+  OverscanScaling*: RendererLogicalPresentation = LOGICAL_PRESENTATION_OVERSCAN
+  IntegerScaling*: RendererLogicalPresentation = LOGICAL_PRESENTATION_INTEGER_SCALE
+
+type
+  TextureScaleMode* = ScaleMode
+const
+  Nearest*: ScaleMode = SCALEMODE_NEAREST
+  Linear*: ScaleMode = SCALEMODE_LINEAR
+  Pixelart*: ScaleMode = SCALEMODE_PIXELART
     
 const 
   QuitEvent*: EventType = EVENT_QUIT
@@ -94,8 +109,13 @@ const
   KeyUpEvent*: EventType = EVENT_KEY_UP
   MouseButtonDownEvent*: EventType = EVENT_MOUSE_BUTTON_DOWN
   MouseButtonUpEvent*: EventType = EVENT_MOUSE_BUTTON_UP
+  MouseWheelEvent*: EventType = EVENT_MOUSE_WHEEL
   WindowResizeEvent*: EventType = EVENT_WINDOW_RESIZED
-
+  WindowMaximizeEvent*: EventType = EVENT_WINDOW_MAXIMIZED
+  WindowMinimizeEvent*: EventType = EVENT_WINDOW_MINIMIZED
+  WindowLeaveFullscreenEvent*: EventType = EVENT_WINDOW_LEAVE_FULLSCREEN
+  WindowFocusGainedEvent*: EventType = EVENT_WINDOW_FOCUS_GAINED
+  WindowFocusLostEvent*: EventType = EVENT_WINDOW_FOCUS_LOST
 
 const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
 const Green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
@@ -151,7 +171,7 @@ proc scaleFactor*(window: Window): float32 =
   return getDisplayContentScale(getDisplayForWindow(window.sdlWindow))
 
 proc create*(window: Window): void =
-  window.sdlWindow = createWindow(window.title.cstring, window.w.int32, window.h.int32, window.flags)
+  window.sdlWindow = createWindow(window.title.cstring, 0, 0, window.flags)
 
 proc setSize*(window: Window; w, h: int32): void =
   discard setWindowSize(window.sdlWindow, w.int32, h.int32)
@@ -160,7 +180,7 @@ proc getSize*(window: Window): tuple[w, h: int32] =
   var w: int32
   var h: int32
   if getWindowSize(window.sdlWindow, w, h): 
-    (w.int32, h.int32)
+    (w, h)
   else:
     (0, 0)
 
@@ -193,7 +213,7 @@ proc setResizable*(window: Window, state: bool): void =
 proc setAspectRatio*(window: Window; min, max: float32): void =
   discard setWindowAspectRatio(window.sdlWindow, min, max)
 
-proc setLogicalPixels*(renderer: Renderer; w, h: int, mode: ScalingMode): void =
+proc setLogicalPixels*(renderer: Renderer; w, h: int, mode: RendererScaleMode): void =
   discard setRenderLogicalPresentation(renderer.sdlRenderer, w.cint, h.cint, mode)
 
 proc kill*(window: Window): void =
@@ -206,51 +226,41 @@ proc create*(renderer: Renderer): void =
   else:
     echo "Couldn't initialize text"
 
-proc setDrawColor*(renderer: Renderer, color: Color): void =
+proc setRenderColor(renderer: Renderer, color: Color): void =
   discard setRenderDrawColor(renderer.sdlRenderer, color.r, color.g, color.b, color.a)
 
 proc clear*(renderer: Renderer, color: Color): void =
-  renderer.setDrawColor(color)
+  renderer.setRenderColor(color)
   discard renderClear(renderer.sdlRenderer)
 
-proc drawPoint*(renderer: Renderer, point: Vector2[float32], color: Color): void =
-  renderer.setDrawColor(color)
-  discard renderPoint(renderer.sdlRenderer, point.x, point.y)
+proc renderPixel*(renderer: Renderer, pixel: Pixel): void =
+  renderer.setRenderColor(pixel.color)
+  discard renderPoint(renderer.sdlRenderer, pixel.x, pixel.y)
 
-proc drawPoints*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
-  if points.len == 0: return
-  renderer.setDrawColor(color)
-  let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
-  discard renderPoints(renderer.sdlRenderer, toOpenArray(pointsPtr, points.low, points.high))
+proc renderPixels*(renderer: Renderer, pixels: openArray[Pixel]): void =
+  for pixel in pixels:
+    renderer.setRenderColor(pixel.color)
+    discard renderPoint(renderer.sdlRenderer, pixel.x, pixel.y)
 
-proc drawLine*(renderer: Renderer, point1: Vector2[float32], point2: Vector2[float32], color: Color): void =
-  renderer.setDrawColor(color)
+proc renderLine*(renderer: Renderer, point1: Vector2[float32], point2: Vector2[float32], color: Color): void =
+  renderer.setRenderColor(color)
   discard renderLine(renderer.sdlRenderer, point1.x, point1.y, point2.x, point2.y)
 
-proc drawLines*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
+proc renderLines*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
   if points.len == 0: return
-  renderer.setDrawColor(color)
+  renderer.setRenderColor(color)
   let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
   discard renderLines(renderer.sdlRenderer, toOpenArray(pointsPtr, points.low, points.high))
 
-proc drawRect*(renderer: Renderer, rect: Rect): void =
-  renderer.setDrawColor(rect.color)
+proc renderRect*(renderer: Renderer, rect: Rect, color: Color): void =
+  renderer.setRenderColor(color)
   let sdlRect: FRect = FRect(x: rect.x, y: rect.y, w: rect.w, h: rect.h)
   discard renderFillRect(renderer.sdlRenderer, sdlRect)
 
-proc drawRects*(renderer: Renderer, rects: openArray[Rect]): void =
-  for rect in rects:
-    drawRect(renderer, rect)
+proc renderHollowRect*(renderer: Renderer, rect: Rect, color: Color): void =
+  renderer.renderLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], color)
 
-proc drawHollowRect*(renderer: Renderer, rect: Rect): void =
-  renderer.drawLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], rect.color)
-
-proc drawHollowRects*(renderer: Renderer, rects: openArray[Rect]): void =
-  if rects.len == 0: return
-  for rect in rects:
-    renderer.drawLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], rect.color)
-
-proc drawCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
+proc renderCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
   var vertices = newSeq[Vertex](segments + 1)
   let vertexColor = FColor(
     r: color.r.float32 / 255,
@@ -283,6 +293,9 @@ proc quit*(): void =
 
 proc pollEvent*(event: var Event): bool =
   sdl3.pollEvent(event)
+
+proc waitEvent*(event: var Event): bool =
+  sdl3.waitEvent(event)
 
 proc pressed*(event: Event, key: Key): bool =
   if event.type == KeyDownEvent:
@@ -327,7 +340,6 @@ proc down*(button: MouseButton): bool =
 proc getMousePosition*(renderer: Renderer): tuple[x, y: float32] =
   var x, y: float32
   discard getMouseState(x, y)
-  discard renderCoordinatesFromWindow(renderer.sdlRenderer, x, y, x, y)
   return (x.float32, y.float32)
 
 proc createAudioPlayer*(): AudioPlayer =
@@ -362,23 +374,109 @@ proc loadFont(path: string, size: float32): Font =
 proc kill*(font: Font): void =
   closeFont(font)
 
-proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: float32, color: Color, x: float32 = 0, y: float32 = 0): Text =
+proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: float32, color: Color = White, x: float32 = 0, y: float32 = 0): Text =
   let font: Font = loadFont(fontPath, fontSize)
   let tempText: ptr sdl3_ttf.Text = createText(renderer.textEngine, font, text, 0)
   discard setTextColor(tempText, color.r, color.g, color.b, color.a)
   return Text(sdlText: tempText, x: x, y: y)
 
-proc drawText*(renderer: Renderer, text: Text;): void =
+proc renderText*(renderer: Renderer, text: Text;): void =
   discard drawRendererText(text.sdlText, text.x, text.y)
 
-proc drawTexts*(renderer: Renderer, texts: openArray[Text];): void =
+proc renderTexts*(renderer: Renderer, texts: openArray[Text];): void =
   for text in texts:
     discard drawRendererText(text.sdlText, text.x, text.y)
 
-proc drawDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
-  renderer.setDrawColor(color)
+proc renderDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
+  renderer.setRenderColor(color)
   discard renderDebugText(renderer.sdlRenderer, x, y, text)
   
+proc createTexture*(renderer: Renderer, textureAccess: TextureAccess; w, h: int32): Texture =
+  createTexture(renderer.sdlRenderer, PIXELFORMAT_RGBA32, textureAccess, w, h)
+
+proc getSize*(texture: Texture): tuple[w, h: float32] =
+  var w: float32
+  var h: float32
+  if getTextureSize(texture, w, h): 
+    (w, h)
+  else:
+    (0, 0)
+
+proc renderTexture*(renderer: Renderer, texture: Texture, x, y, w, h: float32 = 0) =
+  var (w, h) = (w, h)
+  if w == 0 or h == 0:
+    (w, h) = texture.getSize()
+  let dstrect: FRect = FRect(x: x, y: y, w: w, h: h)
+  discard renderTexture(renderer.sdlRenderer, texture, nil, addr dstrect)
+
+proc lock*(texture: Texture, pixels: var pointer, pitch: var int32) =
+  discard sdl3.lockTexture(texture, nil, pixels, pitch)
+
+proc unlock*(texture: Texture) =
+  sdl3.unlockTexture(texture)
+
+proc setTexturePixel(pixels: ptr UncheckedArray[uint8], pitch: int32, pixel: Pixel) =
+  let position = pixel.y.int32 * pitch + pixel.x.int32 * 4
+  pixels[position] = pixel.color.r
+  pixels[position + 1] = pixel.color.g
+  pixels[position + 2] = pixel.color.b
+  pixels[position + 3] = pixel.color.a
+  
+proc setTexturePixel(pixels: ptr UncheckedArray[uint8], pitch, x, y: int32, pixel: Color) =
+  let position: int32 = y * pitch + x * 4
+  pixels[position] = pixel.r
+  pixels[position + 1] = pixel.g
+  pixels[position + 2] = pixel.b
+  pixels[position + 3] = pixel.a
+
+proc setPixel*(texture: Texture, pixel: Pixel) =
+  var
+    pixelsPtr: pointer
+    pitch: int32
+  texture.lock(pixelsPtr, pitch)
+  let data = cast[ptr UncheckedArray[uint8]](pixelsPtr)
+  setTexturePixel(data, pitch, pixel)
+  unlockTexture(texture)
+
+proc setPixels*(texture: Texture, pixels: openArray[Pixel]) =
+  var
+    pixelsPtr: pointer
+    pitch: int32
+  texture.lock(pixelsPtr, pitch)
+  let data = cast[ptr UncheckedArray[uint8]](pixelsPtr)
+  for pixel in pixels:
+    setTexturePixel(data, pitch, pixel)
+  unlockTexture(texture)
+
+## Updates the texture with an array or a sequence of contiguous RGBA pixel data
+proc update*(texture: Texture, pixels: openArray[Color]) =
+  var
+    pixelsPtr: pointer
+    pitch: int32
+  let (w, h): tuple[w: float32, h: float32] = texture.getSize()
+  texture.lock(pixelsPtr, pitch)
+  let data = cast[ptr UncheckedArray[uint8]](pixelsPtr)
+  for y in 0'i32 ..< h.int32:
+    for x in 0'i32 ..< w.int32:
+      setTexturePixel(data, pitch, x, y, pixels[y * w.int32 + x])
+  unlockTexture(texture)
+
+proc setScaleMode*(texture: Texture, scaleMode: TextureScaleMode) =
+  discard sdl3.setTextureScaleMode(texture, scaleMode)
+
+proc getScaleMode*(texture: Texture, scaleMode: TextureScaleMode): TextureScaleMode =
+  var scaleMode: ScaleMode
+  discard sdl3.getTextureScaleMode(texture, scaleMode)
+  scaleMode
+
+proc setDefaultTextureScaleMode*(renderer: Renderer, scaleMode: TextureScaleMode) =
+  discard sdl3.setDefaultTextureScaleMode(renderer.sdlRenderer, scaleMode)
+
+proc getDefaultTextureScaleMode*(renderer: Renderer): TextureScaleMode =
+  var scaleMode: ScaleMode
+  discard sdl3.getDefaultTextureScaleMode(renderer.sdlRenderer, scaleMode)
+  scaleMode
+
 proc kill*(text: Text): void =
   destroyText(text.sdlText)
 
@@ -391,13 +489,11 @@ proc loadImage*(renderer: Renderer, image: string): Image =
   discard getTextureSize(texture, w, h)
   return Image(texture: texture, w: w, h: h)
 
-proc drawImage*(renderer: Renderer, image: Image): void =
-  var dstrect: FRect
-  dstrect.x = image.x
-  dstrect.y = image.y
-  dstrect.w = image.w
-  dstrect.h = image.h
-  discard renderTexture(renderer.sdlRenderer, image.texture, nil, addr dstrect)
+proc renderImage*(renderer: Renderer, image: Image): void =
+  let
+    x = image.x
+    y = image.y
+  renderTexture(renderer, image.texture, x, y)
 
 proc inside*(pos: tuple[x, y: float32], rect: Rect): bool =
   if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
@@ -422,6 +518,9 @@ proc down*(rect: Rect, renderer: Renderer): bool =
   else:
     return false
 
+proc down*(button: Button, renderer: Renderer): bool =
+  down(button.rect, renderer)
+
 proc pressed*(event: Event, rect: Rect, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
   if event.pressed(mouseLeftButton):
@@ -432,7 +531,10 @@ proc pressed*(event: Event, rect: Rect, renderer: Renderer): bool =
   else:
     return false
 
-proc drawButton*(renderer: Renderer, button: Button): void =
+proc pressed*(event: Event, button: Button, renderer: Renderer): bool =
+  pressed(event, button.rect, renderer)
+
+proc renderButton*(renderer: Renderer, button: Button): void =
   let mousePos = renderer.getMousePosition()
   if not mousePos.inside(button.rect) and mouseLeftButton.down():
     button.rect.fromOutside = true
@@ -440,26 +542,36 @@ proc drawButton*(renderer: Renderer, button: Button): void =
     button.rect.fromOutside = false
   var color: Color
   if down(button.rect, renderer):
-    button.rect.color = button.downColor
+    color = button.downColor
   else:
-    button.rect.color = button.color
+    color = button.color
   var borderColor: Color
   if hovered(button.rect, renderer):
     borderColor = button.borderHoverColor
   else:
     borderColor = button.borderColor
-  renderer.drawRect(button.rect)
-  renderer.drawHollowRect(Rect(x: button.rect.x, y: button.rect.y, w: button.rect.w, h: button.rect.h, color: borderColor))
+  renderer.renderRect(button.rect, color)
+  renderer.renderHollowRect(Rect(x: button.rect.x, y: button.rect.y, w: button.rect.w, h: button.rect.h), borderColor)
   button.text.x = button.rect.x
   button.text.y = button.rect.y
-  renderer.drawText(button.text)
+  renderer.renderText(button.text)
 
-proc drawButtons*(renderer: Renderer, buttons: openArray[Button]): void =
+proc renderButtons*(renderer: Renderer, buttons: openArray[Button]): void =
   for button in buttons:
-    renderer.drawButton(button)
+    renderer.renderButton(button)
 
 proc getTicksMS*(): uint64 =
   sdl3.getTicks()
 
 proc getTicksNS*(): uint64 =
   sdl3.getTicksNS()
+
+proc centerHRect*(rect: var Rect, window: Window, scale: float32 = 1) =
+  rect.x = (window.getSize().w.float32 - rect.w * scale) / 2
+
+proc centerVRect*(rect: var Rect, window: Window, scale: float32 = 1) =
+  rect.y = (window.getSize().h.float32 - rect.h * scale) / 2
+
+proc centerRect*(rect: var Rect, window: Window, scale: float32 = 1) =
+  rect.x = (window.getSize().w.float32 - rect.w * scale) / 2
+  rect.y = (window.getSize().h.float32 - rect.h * scale) / 2

@@ -1,4 +1,4 @@
-import ../sdl3/sdl3
+import sdl3
 
 type Key* = Scancode
 const
