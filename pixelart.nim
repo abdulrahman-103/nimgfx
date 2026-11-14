@@ -1,4 +1,5 @@
-import src/nimgfx, os, math
+import src/nimgfx, os, math, nimPNG
+
 discard initVideo()
 let monitorSize: tuple[w: int32, h: int32] = getMonitorSize()
 var window: Window = Window(title: "pixelart editor")
@@ -71,6 +72,23 @@ proc createCanvas(w, h: int): Canvas =
   var pixels = newSeq[Color](w * h)
   Canvas(rect: rect, pixels: pixels)
 
+proc saveAsPNG(canvas: pointer; fileList: cstringArray; filter: cint) {.cdecl.} =
+  if fileList == nil:
+    echo "Dialog failed"
+    return
+  elif fileList[0] == nil:
+    echo "Dialog cancelled"
+    return
+
+  var pixels: seq[uint8]
+  let canvas = cast[ptr Canvas](canvas)
+  for color in canvas.pixels:
+    pixels.add(color.r)
+    pixels.add(color.g)
+    pixels.add(color.b)
+    pixels.add(color.a)
+  discard savePNG32($fileList[0], pixels, canvas.rect.w.int, canvas.rect.h.int)
+
 proc fit(canvas: var Canvas, window: Window) =
   let
     windowSize = window.getSize
@@ -102,6 +120,7 @@ let whiteButton = Button(rect: Rect(x: 0, y: 150 * window.scaleFactor(), w: 80 *
 let redButton = Button(rect: Rect(x: 0, y: 200 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Red)
 let greenButton = Button(rect: Rect(x: 0, y: 250 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Green)
 let blueButton = Button(rect: Rect(x: 0, y: 300 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Blue)
+let saveButton = Button(rect: Rect(x: 0, y: 350 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), text: createText(renderer, "حفظ", amiri, 30))
 buttons.add(pencilButton)
 buttons.add(eraserButton)
 buttons.add(blackButton)
@@ -109,6 +128,7 @@ buttons.add(whiteButton)
 buttons.add(redButton)
 buttons.add(greenButton)
 buttons.add(blueButton)
+buttons.add(saveButton)
 
 while running:
   var event: Event
@@ -145,7 +165,9 @@ while running:
     if event.pressed(greenButton, renderer):
       pencilColor = Green
     if event.pressed(blueButton, renderer):
-      pencilColor = Blue     
+      pencilColor = Blue
+    if event.pressed(saveButton, renderer):
+      saveFileDialog(window = window, callback = saveAsPNG, data = addr canvas)
 
   if mouseLeftButton.down():
     case activeTool:

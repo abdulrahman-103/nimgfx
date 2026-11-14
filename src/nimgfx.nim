@@ -63,6 +63,10 @@ type
 
   Texture* = sdl3.Texture
 
+  DialogFileFilter* = sdl3.DialogFileFilter
+
+  DialogFileCallback* = sdl3.DialogFileCallback
+
   Button* = ref object
     text*: Text
     rect*: Rect
@@ -575,3 +579,24 @@ proc centerVRect*(rect: var Rect, window: Window, scale: float32 = 1) =
 proc centerRect*(rect: var Rect, window: Window, scale: float32 = 1) =
   rect.x = (window.getSize().w.float32 - rect.w * scale) / 2
   rect.y = (window.getSize().h.float32 - rect.h * scale) / 2
+
+proc openFileDialog*(callBack: proc, window: Window = nil, filters: openArray[DialogFileFilter] = [], data: pointer = nil, location: string = "", allowMultiple: bool = false) =
+  let location: cstring = if location.len == 0: nil else: location.cstring
+  let sdlWindow: sdl3.Window = if window == nil: nil else: window.sdlWindow
+  if filters.len == 0:
+    showOpenFileDialog(callBack, data, sdlWindow, nil, 0, location, allowMultiple)
+  else:
+    showOpenFileDialog(callBack, data, sdlWindow, filters, location, allowMultiple)
+
+proc saveFileDialog*(callBack: DialogFileCallback, window: Window = nil, filters: openArray[DialogFileFilter] = [], data: pointer = nil, location: string = "") =
+  let location: cstring = if location.len == 0: nil else: location.cstring
+  let sdlWindow: sdl3.Window = if window == nil: nil else: window.sdlWindow
+  if filters.len == 0:
+    showSaveFileDialog(callBack, data, sdlWindow, nil, 0, location)
+  else:
+    showSaveFileDialog(callBack, data, sdlWindow, filters, location)
+
+proc openFolderDialog*(callBack: proc, window: Window = nil, data: pointer = nil, location: string = "", allowMultiple: bool = false) =
+  let location: cstring = if location.len == 0: nil else: location.cstring
+  let sdlWindow: sdl3.Window = if window == nil: nil else: window.sdlWindow
+  showOpenFolderDialog(callBack, data, sdlWindow, location, allowMultiple)
