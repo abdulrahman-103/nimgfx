@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-      - uses: actions/checkout@v7
+        uses: actions/checkout@v7
 
       - name: Setup nim
-      - uses: nim-lang/setup-nimble-action@v2
+        uses: nim-lang/setup-nimble-action@v2
 
       - name: Generate documentation
         run: nimble doc --out:index.html --outdir:docs src/nimgfx.nim
