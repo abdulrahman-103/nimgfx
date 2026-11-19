@@ -1,7 +1,13 @@
-import sdl3, sdl3_ttf, sdl3_image, sdl3_mixer, math, tables, nimgfx/[keys, vectors]
-export keys, vectors
+import sdl3, sdl3_ttf, sdl3_image, sdl3_mixer, math, tables, nimgfx/[keys, vectors, colors]
+export keys, vectors, colors
 
 discard setHint(HINT_VIDEO_WAYLAND_SCALE_TO_DISPLAY, "1")
+
+const
+  DefaultColor*: colors.Color = rgba(49, 54, 59, 255)
+  DefaultDownColor*: colors.Color = rgba(47, 83, 104, 255)
+  DefaultBorderColor*: colors.Color = rgba(77, 80, 83, 255)
+  DefaultHoverColor*: colors.Color = rgba(61, 174, 233, 255)
 
 type 
   Window* = ref object
@@ -14,9 +20,6 @@ type
     sdlRenderer*: sdl3.Renderer = nil
     textEngine: TextEngine
 
-  Color* = object
-    r*, g*, b*, a*: uint8
-
   Font* = sdl3_ttf.Font
 
   Text* = object
@@ -26,25 +29,27 @@ type
   Event* = sdl3.Event
 
   Rect* = object
-    x*, y*: float32 = 0
-    w*, h*: float32
+    x*, y*, w*, h*, radius*: float32
+    border*: float32 = 1
+    color, borderColor: colors.Color
     fromOutside: bool = false
 
   Circle* = object
-    x*, y*: float32 = 0
+    x*, y*: float32
     radius*: float32
+    color*: colors.Color
 
   Point* = FPoint
 
   Pixel* = object
     x*, y*: float32
-    color*: Color
+    color*: colors.Color
 
   AudioPlayer* = Mixer
 
   Image* = object
     texture*: Texture
-    x*, y*: float32 = 0
+    x*, y*: float32
     w*, h*: float32
 
   MouseButton* = enum
@@ -70,19 +75,18 @@ type
   Button* = ref object
     text*: Text
     rect*: Rect
-    color*: Color = Color(r: 49, g: 54, b: 59, a: 255)
-    downColor*: Color = Color(r: 47, g: 83, b: 104, a: 255)
-    borderColor*: Color = Color(r: 77, g: 80, b: 83, a: 255)
-    borderHoverColor*: Color = Color(r: 61, g: 174, b: 233, a: 255)
+    color*: colors.Color = DefaultColor
+    downColor*: colors.Color = DefaultDownColor 
+    borderColor*: colors.Color = DefaultBorderColor
+    borderHoverColor*: colors.Color = DefaultHoverColor
 
   TextEdit* = ref object
     text*: Text
-    w*, h*, x*, y*: float32 = 0
-    color*: Color = Color(r: 49, g: 54, b: 59, a: 255)
-    downColor*: Color = Color(r: 47, g: 83, b: 104, a: 255)
-    borderColor*: Color = Color(r: 77, g: 80, b: 83, a: 255)
-    borderHoverColor*: Color = Color(r: 61, g: 174, b: 233, a: 255)
-    fromOutside: bool = false
+    rect*: Rect
+    color*: colors.Color = rgba(49, 54, 59, 255)
+    downColor*: colors.Color = rgba(47, 83, 104, 255)
+    borderColor*: colors.Color = rgba(77, 80, 83, 255)
+    borderHoverColor*: colors.Color = rgba(61, 174, 233, 255)
 
 type 
   TextureAccess* = sdl3.TextureAccess
@@ -120,18 +124,6 @@ const
   WindowLeaveFullscreenEvent*: EventType = EVENT_WINDOW_LEAVE_FULLSCREEN
   WindowFocusGainedEvent*: EventType = EVENT_WINDOW_FOCUS_GAINED
   WindowFocusLostEvent*: EventType = EVENT_WINDOW_FOCUS_LOST
-
-const Red*: Color = Color(r: 255, g: 0, b: 0, a: 255)
-const Green*: Color = Color(r: 0, g: 255, b: 0, a: 255)
-const Blue*: Color = Color(r: 0, g: 0, b: 255, a: 255)
-const White*: Color = Color(r: 255, g: 255, b: 255, a: 255)
-const Black*: Color = Color(r: 0, g: 0, b: 0, a: 255)
-const Gray*: Color = Color(r: 128, g: 128, b: 128, a: 255)
-const Cyan*: Color = Color(r: 0, g: 255, b: 255, a: 255)
-const Magenta*: Color = Color(r: 255, g: 0, b: 255, a: 255)
-const Yellow*: Color = Color(r: 255, g: 255, b: 0, a: 255)
-const Orange*: Color = Color(r: 255, g: 127, b: 0, a: 255)
-const Brown*: Color = Color(r: 139, g: 69, b: 19, a: 255)
 
 proc initVideo*(): bool =
   sdl3.init(INIT_VIDEO)
@@ -230,10 +222,10 @@ proc create*(renderer: Renderer): void =
   else:
     echo "Couldn't initialize text"
 
-proc setRenderColor(renderer: Renderer, color: Color): void =
+proc setRenderColor(renderer: Renderer, color: colors.Color): void =
   discard setRenderDrawColor(renderer.sdlRenderer, color.r, color.g, color.b, color.a)
 
-proc clear*(renderer: Renderer, color: Color): void =
+proc clear*(renderer: Renderer, color: colors.Color): void =
   renderer.setRenderColor(color)
   discard renderClear(renderer.sdlRenderer)
 
@@ -246,31 +238,23 @@ proc renderPixels*(renderer: Renderer, pixels: openArray[Pixel]): void =
     renderer.setRenderColor(pixel.color)
     discard renderPoint(renderer.sdlRenderer, pixel.x, pixel.y)
 
-proc renderLine*(renderer: Renderer, point1: Vector2[float32], point2: Vector2[float32], color: Color): void =
+proc renderLine*(renderer: Renderer, point1: Vector2[float32], point2: Vector2[float32], color: colors.Color): void =
   renderer.setRenderColor(color)
   discard renderLine(renderer.sdlRenderer, point1.x, point1.y, point2.x, point2.y)
 
-proc renderLines*(renderer: Renderer, points: openArray[Vector2[float32]], color: Color): void =
+proc renderLines*(renderer: Renderer, points: openArray[Vector2[float32]], color: colors.Color): void =
   if points.len == 0: return
   renderer.setRenderColor(color)
   let pointsPtr: ptr UncheckedArray[FPoint] = cast[ptr UncheckedArray[FPoint]](points[points.low].addr)
   discard renderLines(renderer.sdlRenderer, toOpenArray(pointsPtr, points.low, points.high))
 
-proc renderRect*(renderer: Renderer, rect: Rect, color: Color): void =
-  renderer.setRenderColor(color)
-  let sdlRect: FRect = FRect(x: rect.x, y: rect.y, w: rect.w, h: rect.h)
-  discard renderFillRect(renderer.sdlRenderer, sdlRect)
-
-proc renderHollowRect*(renderer: Renderer, rect: Rect, color: Color): void =
-  renderer.renderLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], color)
-
-proc renderCircle*(renderer: Renderer, circle: Circle, color: Color, segments: int = 30): void =
+proc renderCircle*(renderer: Renderer, circle: Circle, segments: int = 30): void =
   var vertices = newSeq[Vertex](segments + 1)
   let vertexColor = FColor(
-    r: color.r.float32 / 255,
-    g: color.g.float32 / 255,
-    b: color.b.float32 / 255,
-    a: color.a.float32 / 255)
+    r: circle.color.r.float32 / 255,
+    g: circle.color.g.float32 / 255,
+    b: circle.color.b.float32 / 255,
+    a: circle.color.a.float32 / 255)
   vertices[0] = Vertex(position: FPoint(x: circle.x, y: circle.y), color: vertexColor)
   for i in 0 ..< segments:
     let angle = 2.0'f32 * PI.float32 * i.float32 / segments.float32
@@ -281,6 +265,67 @@ proc renderCircle*(renderer: Renderer, circle: Circle, color: Color, segments: i
     indices[i * 3 + 1] = cint(i+1)
     indices[i * 3 + 2] = cint((i+1) mod segments + 1)
   discard renderGeometry(renderer.sdlRenderer, nil, addr vertices[0], vertices.len.cint, addr indices[0], indices.len.cint)
+  
+proc renderHollowRect*(renderer: Renderer, rect: Rect, color: colors.Color): void =
+    renderer.renderLines([Vector2[float32](x: rect.x, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y), Vector2[float32](x: rect.x + rect.w, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y + rect.h), Vector2[float32](x: rect.x, y: rect.y)], color)
+
+proc renderRect*(renderer: Renderer, rect: Rect): void =
+  if rect.radius <= 0:
+    if rect.border == 0:
+      let sdlRect = FRect(x: rect.x, y: rect.y, w: rect.w, h: rect.h)
+      renderer.setRenderColor(rect.color)
+      discard renderFillRect(renderer.sdlRenderer, sdlRect)
+    else:
+      let border = FRect(x: rect.x, y: rect.y, w: rect.w, h: rect.h)
+      let sdlRect = FRect(x: rect.x + rect.border, y: rect.y + rect.border, w: rect.w - rect.border * 2, h: rect.h - rect.border * 2)
+      renderer.setRenderColor(rect.borderColor)
+      discard renderFillRect(renderer.sdlRenderer, border)
+      renderer.setRenderColor(rect.color)
+      discard renderFillRect(renderer.sdlRenderer, sdlRect)
+  else:
+    if rect.border > 0:
+      let
+        borderCircle1 = Circle(radius: rect.radius, x: rect.x + rect.radius, y: rect.y + rect.radius, color: rect.borderColor)
+        borderCircle2 = Circle(radius: rect.radius, x: rect.x + rect.w - rect.radius, y: rect.y + rect.radius, color: rect.borderColor)
+        borderCircle3 = Circle(radius: rect.radius, x: rect.x + rect.radius, y: rect.y + rect.h - rect.radius, color: rect.borderColor)
+        borderCircle4 = Circle(radius: rect.radius, x: rect.x + rect.w - rect.radius, y: rect.y + rect.h - rect.radius, color: rect.borderColor)
+        borderRect1 = Rect(x: borderCircle1.x, y: rect.y, w: rect.w - rect.radius * 2, h: rect.h, color: rect.borderColor, border: 0)
+        borderRect2 = Rect(x: rect.x, y: borderCircle1.y, w: rect.w, h: rect.h - rect.radius * 2, color: rect.borderColor, border: 0)
+      renderer.renderCircle(borderCircle1)
+      renderer.renderCircle(borderCircle2)
+      renderer.renderCircle(borderCircle3)
+      renderer.renderCircle(borderCircle4)
+      renderer.renderRect(borderRect1)
+      renderer.renderRect(borderRect2)
+    
+      let
+        circle1 = Circle(radius: rect.radius - rect.border, x: rect.x + rect.radius, y: rect.y + rect.radius, color: rect.color)
+        circle2 = Circle(radius: rect.radius - rect.border, x: rect.x + rect.w - rect.radius, y: rect.y + rect.radius, color: rect.color)
+        circle3 = Circle(radius: rect.radius - rect.border, x: rect.x + rect.radius, y: rect.y + rect.h - rect.radius, color: rect.color)
+        circle4 = Circle(radius: rect.radius - rect.border, x: rect.x + rect.w - rect.radius, y: rect.y + rect.h - rect.radius, color: rect.color)
+        rect1 = Rect(x: circle1.x, y: rect.y + rect.border, w: rect.w - rect.radius * 2 - rect.border * 2, h: rect.h - rect.border * 2, color: rect.color, border: 0)
+        rect2 = Rect(x: rect.x + rect.border, y: circle1.y, w: rect.w - rect.border * 2, h: rect.h - rect.radius * 2 - rect.border * 2, color: rect.color, border: 0)
+      renderer.renderCircle(circle1)
+      renderer.renderCircle(circle2)
+      renderer.renderCircle(circle3)
+      renderer.renderCircle(circle4)
+      renderer.renderRect(rect1)
+      renderer.renderRect(rect2)
+    
+    else:
+      let
+        circle1 = Circle(radius: rect.radius, x: rect.radius, y: rect.radius, color: rect.color)
+        circle2 = Circle(radius: rect.radius, x: rect.w - rect.radius, y: rect.radius, color: rect.color)
+        circle3 = Circle(radius: rect.radius, x: rect.radius, y: rect.h - rect.radius, color: rect.color)
+        circle4 = Circle(radius: rect.radius, x: rect.w - rect.radius, y: rect.h - rect.radius, color: rect.color)
+        rect1 = Rect(x: circle1.x, y: rect.y, w: rect.w - rect.radius * 2, h: rect.h, color: rect.color, border: 0)
+        rect2 = Rect(x: rect.x, y: circle1.y, w: rect.w, h: rect.h - rect.radius * 2, color: rect.color, border: 0)
+      renderer.renderCircle(circle1)
+      renderer.renderCircle(circle2)
+      renderer.renderCircle(circle3)
+      renderer.renderCircle(circle4)
+      renderer.renderRect(rect1)
+      renderer.renderRect(rect2)
 
 proc setVSync*(renderer: Renderer, state: bool): void =
   discard setRenderVSync(renderer.sdlRenderer, state.int32)
@@ -378,7 +423,7 @@ proc loadFont(path: string, size: float32): Font =
 proc kill*(font: Font): void =
   closeFont(font)
 
-proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: float32, color: Color = White, x: float32 = 0, y: float32 = 0): Text =
+proc createText*(renderer: Renderer, text: string, fontPath: string, fontSize: float32, color: colors.Color = colWhite, x: float32 = 0, y: float32 = 0): Text =
   let font: Font = loadFont(fontPath, fontSize)
   let tempText: ptr sdl3_ttf.Text = createText(renderer.textEngine, font, text, 0)
   discard setTextColor(tempText, color.r, color.g, color.b, color.a)
@@ -391,7 +436,7 @@ proc renderTexts*(renderer: Renderer, texts: openArray[Text];): void =
   for text in texts:
     discard drawRendererText(text.sdlText, text.x, text.y)
 
-proc renderDebugText*(renderer: Renderer, text: string; x, y: float32, color: Color): void =
+proc renderDebugText*(renderer: Renderer, text: string; x, y: float32, color: colors.Color): void =
   renderer.setRenderColor(color)
   discard renderDebugText(renderer.sdlRenderer, x, y, text)
   
@@ -426,7 +471,7 @@ proc setTexturePixel(pixels: ptr UncheckedArray[uint8], pitch: int32, pixel: Pix
   pixels[position + 2] = pixel.color.b
   pixels[position + 3] = pixel.color.a
   
-proc setTexturePixel(pixels: ptr UncheckedArray[uint8], pitch, x, y: int32, pixel: Color) =
+proc setTexturePixel(pixels: ptr UncheckedArray[uint8], pitch, x, y: int32, pixel: colors.Color) =
   let position: int32 = y * pitch + x * 4
   pixels[position] = pixel.r
   pixels[position + 1] = pixel.g
@@ -453,7 +498,7 @@ proc setPixels*(texture: Texture, pixels: openArray[Pixel]) =
   unlockTexture(texture)
 
 ## Updates the texture with an array or a sequence of contiguous RGBA pixel data
-proc update*(texture: Texture, pixels: openArray[Color]) =
+proc update*(texture: Texture, pixels: openArray[colors.Color]) =
   var
     pixelsPtr: pointer
     pitch: int32
@@ -527,7 +572,7 @@ proc down*(button: Button, renderer: Renderer): bool =
 
 proc pressed*(event: Event, rect: Rect, renderer: Renderer): bool =
   let pos = renderer.getMousePosition()
-  if event.pressed(mouseLeftButton):
+  if event.released(mouseLeftButton) and not rect.fromOutside:
     if pos.x >= rect.x and pos.x <= rect.x + rect.w and pos.y >= rect.y and pos.y <= rect.y + rect.h:
       return true
     else:
@@ -540,22 +585,23 @@ proc pressed*(event: Event, button: Button, renderer: Renderer): bool =
 
 proc renderButton*(renderer: Renderer, button: Button): void =
   let mousePos = renderer.getMousePosition()
-  if not mousePos.inside(button.rect) and mouseLeftButton.down():
+  if not mousePos.inside(button.rect):
     button.rect.fromOutside = true
-  if not mouseLeftButton.down():
+  elif not mouseLeftButton.down():
     button.rect.fromOutside = false
-  var color: Color
+  var color: colors.Color
   if down(button.rect, renderer):
     color = button.downColor
   else:
     color = button.color
-  var borderColor: Color
-  if hovered(button.rect, renderer):
+  button.rect.color = color
+  var borderColor: colors.Color
+  if hovered(button.rect, renderer) and not button.rect.fromOutside:
     borderColor = button.borderHoverColor
   else:
     borderColor = button.borderColor
-  renderer.renderRect(button.rect, color)
-  renderer.renderHollowRect(Rect(x: button.rect.x, y: button.rect.y, w: button.rect.w, h: button.rect.h), borderColor)
+  button.rect.borderColor = borderColor
+  renderer.renderRect(button.rect)
   button.text.x = button.rect.x
   button.text.y = button.rect.y
   renderer.renderText(button.text)

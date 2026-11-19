@@ -17,3 +17,6 @@ sdl3_image
 browser
 server
 pixelart
+physics
+physics.nim
+colors

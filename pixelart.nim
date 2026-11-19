@@ -15,7 +15,7 @@ window.maximize()
 var running: bool = true
   
 const amiri: string = "src/resources/Amiri-Regular.ttf"
-var backgroundColor = Black
+var backgroundColor = colBlack
 var pageTitle: string
 var buttons: seq[Button]
 var texts: seq[Text]
@@ -44,20 +44,16 @@ iterator lineBetween(v1, v2: Vector2[int]): tuple[x, y: int]=
   let
     xsign = if dx >= 0: 1 else: -1
     ysign = if dy >= 0: 1 else: -1
-  
   dx = abs(dx)
   dy = abs(dy)
-
   if dx > dy:
     (xx, xy, yx, yy) = (xsign, 0, 0, ysign)
   else:
     (dx, dy) = (dy, dx)
     (xx, xy, yx, yy) = (0, ysign, xsign, 0)
-  
   var
     D = 2 * dy - dx
     y = 0
-
   for x in 0 .. dx:
     yield (
       v1.x + x * xx + y * yx,
@@ -102,24 +98,23 @@ proc fit(canvas: var Canvas, window: Window) =
 var canvas = createCanvas(64, 64)
 var canvasTexture: Texture = renderer.createTexture(TextureAccessStreaming, canvas.rect.w.int32, canvas.rect.h.int32)
 
-let tux: Image = renderer.loadImage("tux.png")
 for x in 0 ..< canvas.rect.w.int:
   for y in 0 ..< canvas.rect.h.int:
-    canvas[x, y] = Red
+    canvas[x, y] = colWhite
 
 var activeTool: Tool
-var pencilColor: Color = Black
+var pencilColor: Color = colBlack
 var maximizedBefore: bool = false
 var previousMousePos: tuple[x: float32, y: float32] = renderer.getMousePosition()
 var released: bool = true
 
 let pencilButton = Button(rect: Rect(x: 0, y: 0, w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), text: createText(renderer, "قلم", amiri, 30))
 let eraserButton = Button(rect: Rect(x: 0, y: 50 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), text: createText(renderer, "مساحة", amiri, 30))
-let blackButton = Button(rect: Rect(x: 0, y: 100 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Black)
-let whiteButton = Button(rect: Rect(x: 0, y: 150 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: White)
-let redButton = Button(rect: Rect(x: 0, y: 200 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Red)
-let greenButton = Button(rect: Rect(x: 0, y: 250 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Green)
-let blueButton = Button(rect: Rect(x: 0, y: 300 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: Blue)
+let blackButton = Button(rect: Rect(x: 0, y: 100 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: colBlack)
+let whiteButton = Button(rect: Rect(x: 0, y: 150 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: colWhite)
+let redButton = Button(rect: Rect(x: 0, y: 200 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: colRed)
+let greenButton = Button(rect: Rect(x: 0, y: 250 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: colGreen)
+let blueButton = Button(rect: Rect(x: 0, y: 300 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), color: colBlue)
 let saveButton = Button(rect: Rect(x: 0, y: 350 * window.scaleFactor(), w: 80 * window.scaleFactor(), h: 40 * window.scaleFactor()), text: createText(renderer, "حفظ", amiri, 30))
 buttons.add(pencilButton)
 buttons.add(eraserButton)
@@ -157,15 +152,15 @@ while running:
     if event.pressed(eraserButton, renderer):
       activeTool = eraser
     if event.pressed(blackButton, renderer):
-      pencilColor = Black
+      pencilColor = colBlack
     if event.pressed(whiteButton, renderer):
-      pencilColor = White
+      pencilColor = colWhite
     if event.pressed(redButton, renderer):
-      pencilColor = Red
+      pencilColor = colRed
     if event.pressed(greenButton, renderer):
-      pencilColor = Green
+      pencilColor = colGreen
     if event.pressed(blueButton, renderer):
-      pencilColor = Blue
+      pencilColor = colBlue
     if event.pressed(saveButton, renderer):
       saveFileDialog(window = window, callback = saveAsPNG, data = addr canvas)
 
@@ -210,7 +205,7 @@ while running:
     previousMousePos = renderer.getMousePosition()
     released = false
   
-  renderer.clear(Black)
+  renderer.clear(colBlack)
   canvas.rect.centerRect(window, scale = canvas.scale)
   canvasTexture.update(canvas.pixels)
   renderer.renderTexture(
