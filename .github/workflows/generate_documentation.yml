@@ -18,6 +18,8 @@ jobs:
 
       - name: Setup nim
         uses: nim-lang/setup-nimble-action@v2
+        with:
+          nimble-version: 0.26.2
 
       - name: Generate documentation
         run: nimble doc --out:index.html --outdir:docs src/nimgfx.nim
