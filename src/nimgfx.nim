@@ -497,7 +497,7 @@ proc setPixels*(texture: Texture, pixels: openArray[Pixel]) =
     setTexturePixel(data, pitch, pixel)
   unlockTexture(texture)
 
-## Updates the texture with an array or a sequence of contiguous RGBA pixel data
+# Updates the texture with an array or a sequence of contiguous RGBA pixel data
 proc update*(texture: Texture, pixels: openArray[colors.Color]) =
   var
     pixelsPtr: pointer

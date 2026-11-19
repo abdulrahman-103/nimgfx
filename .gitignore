@@ -20,3 +20,6 @@ pixelart
 physics
 physics.nim
 colors
+nimble.develop
+nimble.paths
+nimbledeps
